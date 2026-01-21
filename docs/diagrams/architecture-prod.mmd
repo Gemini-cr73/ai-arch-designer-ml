@@ -1,0 +1,32 @@
+flowchart LR
+    U["User (Browser)"] -->|HTTPS| CF["Cloudflare (DNS + SSL)\n(optional)"]
+    CF -->|HTTPS| UI["Streamlit UI\n(Azure App Service)"]
+    UI -->|HTTPS JSON| API["FastAPI API\n(Azure App Service)"]
+
+    subgraph PIPE["Architecture Generation Pipeline"]
+        PRE["ML Preview Engine\n(scikit-learn)"]
+        LLM["LLM Planner\n(Ollama via HTTP)"]
+        DIAG["Diagram Generator\n(Mermaid)"]
+        SCAF["Scaffold Generator"]
+        ZIP["ZIP Builder"]
+    end
+
+    API --> PRE --> API
+    API --> LLM --> API
+    API --> DIAG --> API
+    API --> SCAF --> ZIP --> API
+
+    subgraph RES["Resources"]
+        ART["Model Artifacts"]
+        FB["Feedback Store"]
+    end
+
+    PRE --> ART
+    API --> FB
+
+    subgraph OLL["LLM Backend"]
+        O["Ollama Service"]
+    end
+
+    LLM --> O
+    UI -->|Download ZIP| U
