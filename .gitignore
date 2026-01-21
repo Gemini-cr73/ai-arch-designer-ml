@@ -50,12 +50,11 @@ logs/
 *.db
 
 # =========================
-# Generated Artifacts (ignore by default)
+# Artifacts
 # =========================
-artifacts/*
-**/artifacts/*
-
-# ✅ Allow trained ML models for demo / grading
+# Ignore everything in artifacts by default...
+artifacts/**
+# ...but KEEP the trained model files you need at runtime.
 !artifacts/models/
 !artifacts/models/*.joblib
 

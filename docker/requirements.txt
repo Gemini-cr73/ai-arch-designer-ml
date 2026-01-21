@@ -40,7 +40,12 @@ MarkupSafe==3.0.3
 matplotlib==3.10.8
 multitasking==0.0.12
 narwhals==2.14.0
-numpy==2.4.0
+
+# ✅ IMPORTANT: pin numpy/scipy to sklearn-compatible versions
+numpy==1.26.4
+scipy==1.11.4
+scikit-learn==1.5.2
+
 openai==2.14.0
 packaging==25.0
 pandas==2.3.3

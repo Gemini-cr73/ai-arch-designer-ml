@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -44,17 +46,43 @@ def _is_ollama_down(msg: str) -> bool:
             "refused",
             "timed out",
             "timeout",
-            "localhost:11434",
             "failed to establish a new connection",
             "max retries exceeded",
+            "name or service not known",
+            "temporary failure in name resolution",
         ]
     )
+
+
+def _get_ollama_base_url() -> str:
+    # Prefer explicit env vars (works in Docker + Azure)
+    url = (
+        os.getenv("OLLAMA_BASE_URL")
+        or os.getenv("OLLAMA_HOST")
+        or os.getenv("OLLAMA_URL")
+    )
+    if url:
+        return url.rstrip("/")
+
+    # If running inside Docker, use the compose service DNS name
+    if Path("/.dockerenv").exists():
+        return "http://ollama:11434"
+
+    # Local fallback (non-docker)
+    return "http://localhost:11434"
+
+
+def _get_ollama_model() -> str:
+    # Prefer env var; default to what you actually pulled
+    return os.getenv("OLLAMA_MODEL", "llama3.1:latest")
 
 
 def _get_agent() -> PlannerAgent:
     global _AGENT
     if _AGENT is None:
-        ollama = OllamaClient(base_url="http://localhost:11434", model="llama3.1:8b")
+        base = _get_ollama_base_url()
+        model = _get_ollama_model()
+        ollama = OllamaClient(base_url=base, model=model)
         _AGENT = PlannerAgent(client=ollama)
     return _AGENT
 
@@ -100,11 +128,13 @@ def agent_plan(idea: ProjectIdeaInput) -> AgentArchitecturePlan:
         return agent.plan(_as_dict(idea))
     except Exception as e:
         if _is_ollama_down(str(e)):
+            base = _get_ollama_base_url()
+            model = _get_ollama_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
+                    "Confirm Ollama is running and the model tag exists."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -133,11 +163,13 @@ def diagram_from_idea(payload: DiagramPipelineRequest) -> DiagramPipelineRespons
 
     except Exception as e:
         if _is_ollama_down(str(e)):
+            base = _get_ollama_base_url()
+            model = _get_ollama_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
+                    "Confirm Ollama is running and the model tag exists."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -165,11 +197,13 @@ def scaffold_repo(payload: ScaffoldRequest) -> ScaffoldResponse:
 
     except Exception as e:
         if _is_ollama_down(str(e)):
+            base = _get_ollama_base_url()
+            model = _get_ollama_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
+                    "Confirm Ollama is running and the model tag exists."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -199,11 +233,13 @@ def scaffold_repo_zip(payload: ScaffoldRequest) -> Response:
 
     except Exception as e:
         if _is_ollama_down(str(e)):
+            base = _get_ollama_base_url()
+            model = _get_ollama_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
+                    "Confirm Ollama is running and the model tag exists."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))

@@ -55,27 +55,47 @@ if st.session_state.sidebar_hidden:
 # =========================================================
 # Config
 # =========================================================
-def get_api_base_url() -> str:
+def _get_secret(key: str) -> str | None:
     try:
-        if "API_BASE_URL" in st.secrets:
-            return str(st.secrets["API_BASE_URL"]).rstrip("/")
+        if key in st.secrets:
+            v = str(st.secrets[key]).strip()
+            return v or None
     except Exception:
-        pass
-
-    env_url = os.getenv("API_BASE_URL")
-    if env_url:
-        return env_url.rstrip("/")
-
-    return "http://localhost:8000"
+        return None
+    return None
 
 
-API_BASE_URL = get_api_base_url()
+def get_api_public_url() -> str:
+    """
+    What Streamlit should DISPLAY in the sidebar for users to copy/paste.
+    - Prefer API_PUBLIC_URL if set (compose sets this to http://localhost:8000)
+    """
+    v = os.getenv("API_PUBLIC_URL") or _get_secret("API_PUBLIC_URL")
+    if v:
+        return v.rstrip("/")
+    # fallback: show internal if that's all we have
+    v2 = os.getenv("API_BASE_URL") or _get_secret("API_BASE_URL")
+    return (v2 or "http://localhost:8000").rstrip("/")
 
-PREVIEW_ENDPOINT = f"{API_BASE_URL}/architect/preview"
-AGENT_PLAN_ENDPOINT = f"{API_BASE_URL}/architect/agent-plan"
-DIAGRAM_ENDPOINT = f"{API_BASE_URL}/architect/diagram-from-idea"
-SCAFFOLD_ENDPOINT = f"{API_BASE_URL}/architect/scaffold"
-ZIP_ENDPOINT = f"{API_BASE_URL}/architect/scaffold/zip"
+
+def get_api_internal_url() -> str:
+    """
+    What Streamlit should CALL server-side.
+    - In docker-compose, this must be http://api:8000 (service name)
+    """
+    v = os.getenv("API_BASE_URL") or _get_secret("API_BASE_URL")
+    return (v or "http://localhost:8000").rstrip("/")
+
+
+API_PUBLIC_URL = get_api_public_url()
+API_INTERNAL_URL = get_api_internal_url()
+
+# Endpoints MUST use the INTERNAL URL (container -> container calls)
+PREVIEW_ENDPOINT = f"{API_INTERNAL_URL}/architect/preview"
+AGENT_PLAN_ENDPOINT = f"{API_INTERNAL_URL}/architect/agent-plan"
+DIAGRAM_ENDPOINT = f"{API_INTERNAL_URL}/architect/diagram-from-idea"
+SCAFFOLD_ENDPOINT = f"{API_INTERNAL_URL}/architect/scaffold"
+ZIP_ENDPOINT = f"{API_INTERNAL_URL}/architect/scaffold/zip"
 
 DEFAULT_TIMEOUT = 60
 
@@ -147,7 +167,12 @@ st.caption("Turn project ideas into architecture plans, diagrams, and repo scaff
 # ---------------- Sidebar ----------------
 with st.sidebar:
     st.subheader("🔌 API Connection")
-    st.code(API_BASE_URL)
+    # SHOW the public URL (what user can open/copy)
+    st.code(API_PUBLIC_URL)
+
+    # Optional: show internal URL for debugging
+    with st.expander("Debug (internal URL)", expanded=False):
+        st.code(API_INTERNAL_URL)
 
     st.divider()
     st.subheader("⚙️ Defaults")
@@ -170,7 +195,7 @@ with st.sidebar:
     DIAGRAM_TYPE_MAP = {
         "Flow": "flow",
         "Component": "component",
-        "Deployment": "flow",  # safe fallback
+        "Deployment": "flow",  # safe fallback until backend supports deployment
     }
     diagram_type = DIAGRAM_TYPE_MAP.get(ui_label, "flow")
 
@@ -209,6 +234,7 @@ with col2:
     st.write("- LLM Agent Plan")
     st.write("- Mermaid Diagram")
     st.write("- Scaffold ZIP")
+
 
 # =========================================================
 # Session State
@@ -295,6 +321,7 @@ if generate_btn:
         status_box.success("✅ Done")
     else:
         st.error(zip_err)
+
 
 # =========================================================
 # Display Results

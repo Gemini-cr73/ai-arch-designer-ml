@@ -1,18 +1,51 @@
-version: "3.9"
-
 services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aiarch-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - docker_ollama_data:/root/.ollama
+    networks:
+      - aiarch_net
+    restart: unless-stopped
+
+    # ✅ Healthcheck: confirms the HTTP server responds
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:11434/api/tags >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
     environment:
       - PORT=8000
+
+      # ✅ Keep ONE canonical base URL
+      - OLLAMA_BASE_URL=http://ollama:11434
+
+      # ✅ Match what you actually pull
+      - OLLAMA_MODEL=llama3.1:latest
     ports:
       - "8000:8000"
     networks:
       - aiarch_net
+
+    # ✅ Wait for Ollama to be healthy (not just started)
+    depends_on:
+      ollama:
+        condition: service_healthy
+
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read(); print('ok')\""]
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read(); print('ok')\"",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -25,7 +58,13 @@ services:
       dockerfile: docker/Dockerfile.ui
     environment:
       - PORT=8501
+
+      # ✅ UI talks to API over Docker network
       - API_BASE_URL=http://api:8000
+
+      # (Optional) If your UI shows a "public URL" somewhere, keep it.
+      # Otherwise you can delete it to reduce confusion.
+      - API_PUBLIC_URL=http://localhost:8000
     ports:
       - "8501:8501"
     networks:
@@ -38,3 +77,6 @@ services:
 networks:
   aiarch_net:
     driver: bridge
+
+volumes:
+  docker_ollama_data:
