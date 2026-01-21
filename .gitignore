@@ -50,10 +50,14 @@ logs/
 *.db
 
 # =========================
-# Generated Artifacts (DO NOT COMMIT)
+# Generated Artifacts (ignore by default)
 # =========================
-artifacts/
-**/artifacts/
+artifacts/*
+**/artifacts/*
+
+# ✅ Allow trained ML models for demo / grading
+!artifacts/models/
+!artifacts/models/*.joblib
 
 # =========================
 # Local Data (recommended ignore)
