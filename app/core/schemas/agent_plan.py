@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -9,6 +13,12 @@ class ComponentSpec(BaseModel):
 
 class AgentArchitecturePlan(BaseModel):
     components: list[ComponentSpec]
-    deployment: str
+
+    # ✅ FIX: LLM may return deployment as a string OR as an object
+    deployment: str | dict[str, Any]
+
     scaling: str
     security: list[str]
+
+    class Config:
+        extra = "allow"  # tolerate extra keys the LLM might include
