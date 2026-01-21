@@ -1,6 +1,6 @@
 # 🏗️ AI Architecture Designer (ML-Enhanced)
 
-ML + LLM system that converts a project idea into a full software architecture — including
+ML + LLM system that converts a project idea into a full software architecture — including  
 structured plans, diagrams, repository scaffolds, and cloud deployment templates.
 
 <p align="center">
@@ -30,30 +30,32 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 
 ## ✅ What It Does
 
-- **ML Preview**
-  - Predicts architecture pattern (e.g., monolith, microservices, data pipeline, ML platform)
-  - Estimates system complexity and deployment risk
-  - Recommends components (databases, queues, APIs, auth, observability)
+### 🧠 ML Preview Engine
+- Predicts architecture pattern (monolith, microservices, data platform, ML system)
+- Estimates system complexity and deployment risk
+- Recommends infrastructure components
 
-- **LLM Planner**
-  - Produces structured, schema-validated architecture JSON
-  - Converts user intent into detailed system designs
+### 🤖 LLM Architecture Planner
+- Converts project intent into structured JSON architecture plans
+- Validated using strict Pydantic schemas
+- Designed for deterministic downstream automation
 
-- **Diagram Generator**
-  - Builds Mermaid flow and component diagrams
-  - Exports SVG/PNG for documentation
+### 📐 Diagram Generator
+- Creates Mermaid flow and component diagrams
+- Rendered directly in the UI
 
-- **Repository Scaffold Generator**
-  - Creates folder trees and boilerplate files
-  - Exports ZIP starter projects
+### 🧱 Repository Scaffold Generator
+- Produces folder trees and boilerplate templates
+- Optional Docker + GitHub Actions
+- Downloadable ZIP project starter
 
-- **Cloud Deployment Templates**
-  - Azure App Service deployment guidance
-  - Docker + CI-friendly layouts
+### ☁️ Cloud Deployment Templates
+- Azure App Service guidance
+- Docker-based deployment layouts
 
-- **Feedback Loop (ML)**
-  - Stores user ratings
-  - Enables future retraining and evaluation
+### 🔁 Feedback Loop (ML)
+- Captures user ratings
+- Supports future retraining and evaluation
 
 ---
 
@@ -62,29 +64,32 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 | Model | Goal | Metrics |
 |--------|------|--------|
 | Architecture Pattern Classifier | Predict overall system type | Accuracy, F1 |
-| Component Recommender | Suggest infra + services | Precision@K |
-| Risk / Complexity Regressor | Estimate deployment difficulty | RMSE, R² |
-| Feedback Loop | Improve future predictions | Lift vs baseline |
+| Component Recommendation Model | Suggest infra/services | Precision@K |
+| Risk & Complexity Regressor | Estimate deployment difficulty | RMSE, R² |
+| Feedback Learning Loop | Improve future predictions | Lift vs baseline |
 
-Features include:
-- Text embeddings
+### Feature Sources
+- Text embeddings from project descriptions
 - Graph-derived architecture features
-- Encoded infra characteristics
+- Encoded cloud + infra attributes
 
 ---
 
 ## 🏗️ System Architecture
 
 ### Production Architecture
+
+> Same production model as AI Market Coach — UI and API deployed as separate containers on Azure App Service behind Cloudflare.
+
 ![Production Architecture](docs/screenshots/architecture-prod.png)
 
 ### High-Level Flow
 
-1. User submits project idea via UI
-2. ML models generate architecture preview and confidence
+1. User submits project idea via Streamlit UI
+2. ML models generate preview + confidence metrics
 3. LLM planner produces structured architecture JSON
-4. Services generate diagrams, scaffolds, and deploy templates
-5. Outputs are downloadable and stored for feedback
+4. Services generate diagrams, scaffolds, and deployment templates
+5. ZIP starter project is downloadable
 
 ---
 
@@ -101,6 +106,9 @@ Features include:
 
 ---
 
-## 📁 Project Structure
+## 🚀 Local Development
 
+### 1. Start Docker Services
 
+```powershell
+docker compose -f docker/docker-compose.yml up --build
