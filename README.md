@@ -88,7 +88,7 @@ Rendered image used by GitHub README:
 3. LLM planner produces schema-valid architecture JSON
 4. Services generate Mermaid diagrams, scaffold trees, and ZIP starter
 5. Outputs are shown in the UI and downloadable
-
+   
 ## 🖼️ App Preview
 
 ### Streamlit UI
