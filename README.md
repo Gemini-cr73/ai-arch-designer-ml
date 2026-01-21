@@ -1,7 +1,6 @@
-# 🏗️ AI Architecture Designer
+# 🏗️ AI Architecture Designer (ML + LLM)
 
-ML + LLM system that converts a project idea into a full software architecture — including
-structured plans, diagrams, repository scaffolds, and cloud deployment templates.
+ML + LLM system that converts a project idea into a full software architecture — including structured plans, diagrams, repository scaffolds, and cloud deployment templates.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
@@ -12,17 +11,9 @@ structured plans, diagrams, repository scaffolds, and cloud deployment templates
   <img src="https://img.shields.io/badge/Cloud-Azure_App_Service-0078D4?style=for-the-badge&logo=microsoftazure" />
 </p>
 
-## 🌐 Live App
-
-- **UI:** https://arch.ai-coach-lab.com  
-- **API:** https://arch-api.ai-coach-lab.com  
-- **API Docs (Swagger):** https://arch-api.ai-coach-lab.com/docs  
-- **Health:** https://arch-api.ai-coach-lab.com/health  
-
 ## 🎯 Purpose of the Project
 
-This project demonstrates how **machine learning models and agentic LLM systems can work together**
-to design production-ready software architectures automatically.
+This project demonstrates how **trained ML models** and an **agentic LLM planner** can work together to generate production-ready software architectures automatically.
 
 It is built as both:
 
@@ -33,32 +24,29 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 
 ## ✅ What It Does
 
-### 🧠 ML Preview Engine
-- Predicts architecture pattern (monolith, microservices, data platform, ML system)
-- Estimates system complexity and deployment risk
-- Recommends infrastructure components
+- **ML Preview Engine**
+  - Predicts an architecture pattern (monolith, microservices, data platform, ML system)
+  - Estimates complexity / risk with confidence metrics
+  - Recommends core components (DB, queue, auth, observability)
 
-### 🤖 LLM Architecture Planner
-- Converts project intent into structured JSON architecture plans
-- Validated using strict Pydantic schemas
-- Designed for deterministic downstream automation
+- **LLM Architecture Planner**
+  - Produces a **schema-validated** architecture plan (Pydantic)
+  - Converts user intent into deterministic structured JSON
 
-### 📐 Diagram Generator
-- Creates Mermaid flow diagrams
-- Mermaid source is stored for version control
+- **Diagram Generator (Mermaid)**
+  - Produces flow/component diagrams
+  - Rendered directly in the UI
 
-### 🧱 Repository Scaffold Generator
-- Produces folder trees and boilerplate templates
-- Optional Docker + GitHub Actions included
-- Downloadable ZIP project starter
+- **Repository Scaffold Generator**
+  - Generates a starter folder tree + boilerplate templates
+  - Optional Docker + GitHub Actions
+  - Downloads a ZIP scaffold
 
-### ☁️ Cloud Deployment Templates
-- Azure App Service guidance
-- Docker-based deployment layouts
+- **Cloud Deployment Templates**
+  - Azure App Service deployment layout + guidance
 
-### 🔁 Feedback Loop (ML)
-- Captures user ratings
-- Supports future retraining and evaluation
+- **Feedback Loop (ML)**
+  - Captures user feedback for future retraining/evaluation
 
 ## 🧠 Machine Learning Components
 
@@ -70,28 +58,31 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 | Feedback Learning Loop | Improve future predictions | Lift vs baseline |
 
 **Feature sources**
-- Text embeddings from project descriptions
-- Graph-derived architecture features
-- Encoded cloud + infra attributes
+- Text embeddings from project descriptions  
+- Graph-derived architecture features  
+- Encoded cloud + infra attributes  
 
 ## 🏗️ System Architecture
 
-### Production Architecture (Diagram)
+### Production Architecture
 
-✅ Mermaid source (versioned): `docs/diagrams/architecture-prod.mmd`  
-✅ Rendered image (for README): `docs/screenshots/architecture-prod.png`
+Mermaid source lives here (version-controlled):
 
-> Same production deployment pattern as your other apps: UI and API run as separate services.
+- `docs/diagrams/architecture-prod.mmd`
+
+Rendered image used by GitHub README:
+
+- `docs/screenshots/architecture-prod.png`
 
 ![Production Architecture](docs/screenshots/architecture-prod.png)
 
 ### High-Level Flow
 
-1. User submits project idea via Streamlit UI  
-2. ML models generate preview + confidence metrics  
-3. LLM planner produces a schema-validated architecture plan  
-4. Services generate diagrams, scaffolds, and deployment templates  
-5. ZIP starter project becomes downloadable  
+1. User enters a project idea in Streamlit UI
+2. ML preview generates pattern + confidence metrics
+3. LLM planner produces schema-valid architecture JSON
+4. Services generate Mermaid diagram + scaffold tree + ZIP
+5. Outputs are shown in the UI and downloadable
 
 ## 🖼️ App Preview
 
@@ -107,12 +98,15 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 ## 🚀 Local Development (Docker)
 
 ### ✅ Local URLs
+
 - **UI:** http://localhost:8501  
 - **API:** http://localhost:8000  
 - **Docs:** http://localhost:8000/docs  
 - **Health:** http://localhost:8000/health  
 
 ### 1) Start services
+
 ```powershell
 docker compose -f docker/docker-compose.yml up --build
+
 
