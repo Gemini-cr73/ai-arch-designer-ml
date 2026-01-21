@@ -24,49 +24,51 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 
 ## ✅ What It Does
 
-- **ML Preview Engine**
-  - Predicts an architecture pattern (monolith, microservices, data platform, ML system)
-  - Estimates complexity / risk with confidence metrics
-  - Recommends core components (DB, queue, auth, observability)
+### 🧠 ML Preview Engine
+- Predicts an architecture pattern (monolith, microservices, data platform, ML system)
+- Estimates complexity and deployment risk with confidence metrics
+- Recommends core components (DB, queue, auth, observability)
 
-- **LLM Architecture Planner**
-  - Produces a **schema-validated** architecture plan (Pydantic)
-  - Converts user intent into deterministic structured JSON
+### 🤖 LLM Architecture Planner
+- Produces **schema-validated** architecture plans (Pydantic)
+- Converts user intent into deterministic structured JSON
 
-- **Diagram Generator (Mermaid)**
-  - Produces flow/component diagrams
-  - Rendered directly in the UI
+### 📐 Diagram Generator (Mermaid)
+- Produces flow and component diagrams
+- Rendered directly in the UI
 
-- **Repository Scaffold Generator**
-  - Generates a starter folder tree + boilerplate templates
-  - Optional Docker + GitHub Actions
-  - Downloads a ZIP scaffold
+### 🧱 Repository Scaffold Generator
+- Generates starter folder trees and boilerplate templates
+- Optional Docker and GitHub Actions templates
+- Downloadable ZIP project scaffold
 
-- **Cloud Deployment Templates**
-  - Azure App Service deployment layout + guidance
+### ☁️ Cloud Deployment Templates
+- Azure App Service deployment layouts and guidance
+- Docker-based production containers
 
-- **Feedback Loop (ML)**
-  - Captures user feedback for future retraining/evaluation
+### 🔁 Feedback Loop (ML)
+- Captures user feedback
+- Enables future retraining and evaluation
 
 ## 🧠 Machine Learning Components
 
 | Model | Goal | Metrics |
-|------|------|---------|
+|--------|------|--------|
 | Architecture Pattern Classifier | Predict overall system type | Accuracy, F1 |
 | Component Recommendation Model | Suggest infra/services | Precision@K |
 | Risk & Complexity Regressor | Estimate deployment difficulty | RMSE, R² |
 | Feedback Learning Loop | Improve future predictions | Lift vs baseline |
 
-**Feature sources**
+### Feature Sources
 - Text embeddings from project descriptions  
 - Graph-derived architecture features  
-- Encoded cloud + infra attributes  
+- Encoded cloud and infrastructure attributes  
 
 ## 🏗️ System Architecture
 
 ### Production Architecture
 
-Mermaid source lives here (version-controlled):
+Mermaid source (version controlled):
 
 - `docs/diagrams/architecture-prod.mmd`
 
@@ -76,12 +78,15 @@ Rendered image used by GitHub README:
 
 ![Production Architecture](docs/screenshots/architecture-prod.png)
 
+> Same production model as AI Market Coach:  
+> **Streamlit UI and FastAPI API are deployed as separate containers on Azure App Service behind Cloudflare.**
+
 ### High-Level Flow
 
 1. User enters a project idea in Streamlit UI
-2. ML preview generates pattern + confidence metrics
+2. ML preview models generate pattern + confidence metrics
 3. LLM planner produces schema-valid architecture JSON
-4. Services generate Mermaid diagram + scaffold tree + ZIP
+4. Services generate Mermaid diagrams, scaffold trees, and ZIP starter
 5. Outputs are shown in the UI and downloadable
 
 ## 🖼️ App Preview
@@ -95,18 +100,25 @@ Rendered image used by GitHub README:
 ### Demo Walkthrough
 ![Demo](docs/screenshots/demo.gif)
 
-## 🚀 Local Development (Docker)
+## 📁 Project Structure
 
-### ✅ Local URLs
+```text
+app/
+ ├─ api/                 # FastAPI routes
+ ├─ agents/              # LLM planner agents
+ ├─ core/schemas/        # Pydantic contracts
+ ├─ ml/                  # Models, features, inference
+ ├─ services/            # Diagram + scaffold generators
+ └─ main.py
 
-- **UI:** http://localhost:8501  
-- **API:** http://localhost:8000  
-- **Docs:** http://localhost:8000/docs  
-- **Health:** http://localhost:8000/health  
+ui/
+ └─ streamlit_app.py     # Streamlit frontend
 
-### 1) Start services
+docs/
+ ├─ diagrams/architecture-prod.mmd
+ └─ screenshots/*.png
 
-```powershell
-docker compose -f docker/docker-compose.yml up --build
-
-
+docker/
+ ├─ Dockerfile.api
+ ├─ Dockerfile.ui
+ └─ docker-compose.yml
