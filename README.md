@@ -1,4 +1,4 @@
-# 🏗️ AI Architecture Designer (ML-Enhanced)
+# 🏗️ AI Architecture Designer
 
 ML + LLM system that converts a project idea into a full software architecture — including  
 structured plans, diagrams, repository scaffolds, and cloud deployment templates.
