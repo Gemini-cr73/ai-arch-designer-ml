@@ -1,6 +1,6 @@
 # 🏗️ AI Architecture Designer (ML + LLM)
 
-ML + LLM system that converts a project idea into a full software architecture — including structured plans, diagrams, repository scaffolds, and cloud deployment templates.
+ML + LLM system that converts a project idea into a full software architecture — including **structured plans**, **diagrams**, **repository scaffolds**, and **cloud deployment templates**.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
@@ -11,9 +11,18 @@ ML + LLM system that converts a project idea into a full software architecture �
   <img src="https://img.shields.io/badge/Cloud-Azure_App_Service-0078D4?style=for-the-badge&logo=microsoftazure" />
 </p>
 
+## 🌐 Live App URLs
+
+- **UI (Streamlit):** https://arch.ai-coach-lab.com  
+- **API (FastAPI):** https://arch-api.ai-coach-lab.com  
+- **API Docs (Swagger):** https://arch-api.ai-coach-lab.com/docs  
+- **Health:** https://arch-api.ai-coach-lab.com/health  
+
+> If you run locally, you must update the UI API connection to `http://localhost:8000`.
+
 ## 🎯 Purpose of the Project
 
-This project demonstrates how **trained ML models** and an **agentic LLM planner** can work together to generate production-ready software architectures automatically.
+This project demonstrates how **trained ML models** and an **agentic LLM planner** can work together to generate **production-ready software architectures** automatically.
 
 It is built as both:
 
@@ -24,37 +33,34 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 
 ## ✅ What It Does
 
-### 🧠 ML Preview Engine
-- Predicts architecture pattern (monolith, microservices, data platform, ML system)
-- Estimates system complexity and deployment risk
-- Recommends infrastructure components
+- **ML Preview Engine**
+  - Predicts an architecture pattern (monolith, microservices, data platform, ML system)
+  - Estimates complexity / risk with confidence metrics
+  - Recommends core components (DB, queue, auth, observability)
 
-### 🤖 LLM Architecture Planner
-- Converts project intent into structured JSON architecture plans
-- Validated using strict Pydantic schemas
-- Designed for deterministic downstream automation
+- **LLM Architecture Planner**
+  - Produces a **schema-validated** architecture plan (Pydantic)
+  - Converts user intent into deterministic structured JSON
 
-### 📐 Diagram Generator (Mermaid)
-- Creates Mermaid flow and component diagrams
-- Rendered directly in the UI
+- **Diagram Generator (Mermaid)**
+  - Produces flow/component diagrams
+  - Rendered directly in the UI
 
-### 🧱 Repository Scaffold Generator
-- Produces folder trees and boilerplate templates
-- Optional Docker + GitHub Actions
-- Downloadable ZIP project starter
+- **Repository Scaffold Generator**
+  - Generates a starter folder tree + boilerplate templates
+  - Optional Docker + GitHub Actions
+  - Downloads a ZIP scaffold
 
-### ☁️ Cloud Deployment Templates
-- Azure App Service guidance
-- Docker-based deployment layouts
+- **Cloud Deployment Templates**
+  - Azure App Service deployment layout + guidance
 
-### 🔁 Feedback Loop (ML)
-- Captures user ratings
-- Supports future retraining and evaluation
+- **Feedback Loop (ML)**
+  - Captures user feedback for future retraining/evaluation
 
 ## 🧠 Machine Learning Components
 
 | Model | Goal | Metrics |
-|------|------|--------|
+|------|------|---------|
 | Architecture Pattern Classifier | Predict overall system type | Accuracy, F1 |
 | Component Recommendation Model | Suggest infra/services | Precision@K |
 | Risk & Complexity Regressor | Estimate deployment difficulty | RMSE, R² |
@@ -73,11 +79,11 @@ Mermaid source (version-controlled):
 
 - `docs/diagrams/architecture-prod.mmd`
 
-Rendered image used in README:
+Rendered image for GitHub README:
 
 - `docs/screenshots/architecture-prod.png`
 
-![Production Architecture](docs/screenshots/architecture-prod.png)
+![Production Architecture](./docs/screenshots/architecture-prod.png)
 
 ### High-Level Flow
 
@@ -90,13 +96,13 @@ Rendered image used in README:
 ## 🖼️ App Preview
 
 ### Streamlit UI
-![UI Dashboard](docs/screenshots/ui-dashboard.png)
+![UI Dashboard](./docs/screenshots/ui-dashboard.png)
 
 ### API Documentation (Swagger)
-![API Docs](docs/screenshots/api-docs.png)
+![API Docs](./docs/screenshots/api-docs.png)
 
 ### Demo Walkthrough
-![Demo](docs/screenshots/demo.gif)
+![Demo](./docs/screenshots/demo.gif)
 
 ## 🚀 Local Development (Docker)
 
@@ -107,30 +113,10 @@ Rendered image used in README:
 - **Docs:** http://localhost:8000/docs  
 - **Health:** http://localhost:8000/health  
 
-### ▶ Start services
+### 1) Start services
 
 ```powershell
 docker compose -f docker/docker-compose.yml up --build
 
-## 📁 Project Structure
 
-```text
-app/
- ├─ api/                 # FastAPI routes
- ├─ agents/              # LLM planner agents
- ├─ core/schemas/        # Pydantic contracts
- ├─ ml/                  # Models, features, inference
- ├─ services/            # Diagram + scaffold generators
- └─ main.py
 
-ui/
- └─ streamlit_app.py     # Streamlit frontend
-
-docs/
- ├─ diagrams/architecture-prod.mmd
- └─ screenshots/*.png
-
-docker/
- ├─ Dockerfile.api
- ├─ Dockerfile.ui
- └─ docker-compose.yml
