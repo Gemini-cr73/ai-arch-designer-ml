@@ -1,0 +1,31 @@
+# Python / venv
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Git / OS
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Project folders not needed in image
+artifacts/
+data/
+docs/
+tests/
+scripts/
+
+# Large / generated
+*.zip
+*.log
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Node / misc (just in case)
+node_modules/

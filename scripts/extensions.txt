@@ -1,0 +1,11 @@
+# Core Python + notebooks
+ms-python.python
+ms-python.vscode-pylance
+ms-toolsai.jupyter
+
+# Formatting / linting support
+charliermarsh.ruff
+
+# Dev tooling
+ms-azuretools.vscode-docker
+eamodio.gitlens

@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    environment:
+      - PORT=8000
+    ports:
+      - "8000:8000"
+    networks:
+      - aiarch_net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read(); print('ok')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    environment:
+      - PORT=8501
+      - API_BASE_URL=http://api:8000
+    ports:
+      - "8501:8501"
+    networks:
+      - aiarch_net
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  aiarch_net:
+    driver: bridge

@@ -1,0 +1,71 @@
+# =========================
+# Python / Virtual Envs
+# =========================
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Streamlit Secrets
+# =========================
+.streamlit/secrets.toml
+.streamlit/config.toml
+.streamlit/credentials.toml
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Logs / DB
+# =========================
+*.log
+logs/
+*.sqlite3
+*.db
+
+# =========================
+# Generated Artifacts (DO NOT COMMIT)
+# =========================
+artifacts/
+**/artifacts/
+
+# =========================
+# Local Data (recommended ignore)
+# =========================
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.keep
+!data/interim/.keep
+!data/processed/.keep
+
+# =========================
+# Docker Local Volumes
+# =========================
+docker-data/
