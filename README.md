@@ -25,70 +25,68 @@ This is not prompt-only automation — it is a **hybrid ML + LLM decision system
 ## ✅ What It Does
 
 ### 🧠 ML Preview Engine
-- Predicts an architecture pattern (monolith, microservices, data platform, ML system)
-- Estimates complexity and deployment risk with confidence metrics
-- Recommends core components (DB, queue, auth, observability)
+- Predicts architecture pattern (monolith, microservices, data platform, ML system)
+- Estimates system complexity and deployment risk
+- Recommends infrastructure components
 
 ### 🤖 LLM Architecture Planner
-- Produces **schema-validated** architecture plans (Pydantic)
-- Converts user intent into deterministic structured JSON
+- Converts project intent into structured JSON architecture plans
+- Validated using strict Pydantic schemas
+- Designed for deterministic downstream automation
 
 ### 📐 Diagram Generator (Mermaid)
-- Produces flow and component diagrams
+- Creates Mermaid flow and component diagrams
 - Rendered directly in the UI
 
 ### 🧱 Repository Scaffold Generator
-- Generates starter folder trees and boilerplate templates
-- Optional Docker and GitHub Actions templates
-- Downloadable ZIP project scaffold
+- Produces folder trees and boilerplate templates
+- Optional Docker + GitHub Actions
+- Downloadable ZIP project starter
 
 ### ☁️ Cloud Deployment Templates
-- Azure App Service deployment layouts and guidance
-- Docker-based production containers
+- Azure App Service guidance
+- Docker-based deployment layouts
 
 ### 🔁 Feedback Loop (ML)
-- Captures user feedback
-- Enables future retraining and evaluation
+- Captures user ratings
+- Supports future retraining and evaluation
 
 ## 🧠 Machine Learning Components
 
 | Model | Goal | Metrics |
-|--------|------|--------|
+|------|------|--------|
 | Architecture Pattern Classifier | Predict overall system type | Accuracy, F1 |
 | Component Recommendation Model | Suggest infra/services | Precision@K |
 | Risk & Complexity Regressor | Estimate deployment difficulty | RMSE, R² |
 | Feedback Learning Loop | Improve future predictions | Lift vs baseline |
 
-### Feature Sources
+**Feature sources**
 - Text embeddings from project descriptions  
 - Graph-derived architecture features  
-- Encoded cloud and infrastructure attributes  
+- Encoded cloud + infra attributes  
 
 ## 🏗️ System Architecture
 
 ### Production Architecture
 
-Mermaid source (version controlled):
+Mermaid source (version-controlled):
 
 - `docs/diagrams/architecture-prod.mmd`
 
-Rendered image used by GitHub README:
+Rendered image used in README:
 
 - `docs/screenshots/architecture-prod.png`
 
 ![Production Architecture](docs/screenshots/architecture-prod.png)
 
-> Same production model as AI Market Coach:  
-> **Streamlit UI and FastAPI API are deployed as separate containers on Azure App Service behind Cloudflare.**
-
 ### High-Level Flow
 
-1. User enters a project idea in Streamlit UI
-2. ML preview models generate pattern + confidence metrics
-3. LLM planner produces schema-valid architecture JSON
-4. Services generate Mermaid diagrams, scaffold trees, and ZIP starter
-5. Outputs are shown in the UI and downloadable
-   
+1. User enters a project idea in Streamlit UI  
+2. ML preview generates pattern + confidence metrics  
+3. LLM planner produces schema-valid architecture JSON  
+4. Services generate Mermaid diagram + scaffold tree + ZIP  
+5. Outputs are shown in the UI and downloadable  
+
 ## 🖼️ App Preview
 
 ### Streamlit UI
@@ -99,6 +97,20 @@ Rendered image used by GitHub README:
 
 ### Demo Walkthrough
 ![Demo](docs/screenshots/demo.gif)
+
+## 🚀 Local Development (Docker)
+
+### ✅ Local URLs
+
+- **UI:** http://localhost:8501  
+- **API:** http://localhost:8000  
+- **Docs:** http://localhost:8000/docs  
+- **Health:** http://localhost:8000/health  
+
+### ▶ Start services
+
+```powershell
+docker compose -f docker/docker-compose.yml up --build
 
 ## 📁 Project Structure
 
