@@ -2,20 +2,27 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# Optional: basic tools (curl is useful for health checks / debugging)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install dependencies first (better Docker caching)
 COPY docker/requirements.txt /app/requirements.txt
+
 RUN pip install --no-cache-dir -U pip \
     && pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy application code
+# Copy only what the API needs (keeps image smaller than COPY . .)
 COPY app /app/app
-
-# ✅ Copy ML artifacts (models, etc.)
 COPY artifacts /app/artifacts
 
+# (Optional but helpful) Ensure runtime can find your package
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
+
+# NOTE: App Service likes binding to $PORT sometimes; uvicorn will still run on 8000,
+# but your Azure container settings should map PORT=8000 (or set --port to ${PORT})
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
