@@ -9,38 +9,46 @@ services:
     networks:
       - aiarch_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
     environment:
-      - PORT=8000
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=llama3.1:latest
+      PORT: "8000"
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "llama3.1:latest"
     ports:
       - "8000:8000"
     networks:
       - aiarch_net
     depends_on:
-      ollama:
-        condition: service_started
+      - ollama
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   ui:
     build:
       context: ..
       dockerfile: docker/Dockerfile.ui
     environment:
-      - PORT=8501
-      - API_BASE_URL=http://api:8000
+      PORT: "8501"
+      API_BASE_URL: "http://api:8000"
     ports:
       - "8501:8501"
     networks:
       - aiarch_net
     depends_on:
-      api:
-        condition: service_started
+      - api
     restart: unless-stopped
 
 networks:
