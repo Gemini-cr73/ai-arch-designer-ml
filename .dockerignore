@@ -1,0 +1,52 @@
+# ================================
+# Python / Virtual Environments
+# ================================
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ================================
+# Git / OS
+# ================================
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+
+# ================================
+# Project folders NOT needed in image
+# ================================
+data/
+docs/
+tests/
+scripts/
+
+# ================================
+# ML Artifacts Handling
+# ================================
+# Ignore all artifacts by default
+artifacts/**
+
+# But keep trained production models
+!artifacts/
+!artifacts/models/
+!artifacts/models/**
+!artifacts/models/*.joblib
+
+# ================================
+# Large / generated files
+# ================================
+*.zip
+*.log
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# ================================
+# Node / misc (safety)
+# ================================
+node_modules/
