@@ -96,13 +96,16 @@ Rendered image for GitHub README:
 ## 🖼️ App Preview
 
 ### Streamlit UI
-![UI Dashboard](./docs/screenshots/ui-dashboard.png)
+
+![UI Dashboard](docs/screenshots/ui-dashboard.png)
 
 ### API Documentation (Swagger)
-![API Docs](./docs/screenshots/api-docs.png)
+
+![API Docs](docs/screenshots/api-docs.png)
 
 ### Demo Walkthrough
-![Demo](./docs/screenshots/demo.gif)
+
+![Demo](docs/screenshots/demo.gif)
 
 ## 🚀 Local Development (Docker)
 
@@ -113,10 +116,7 @@ Rendered image for GitHub README:
 - **Docs:** http://localhost:8000/docs  
 - **Health:** http://localhost:8000/health  
 
-### 1) Start services
+### ▶ Start Services
 
 ```powershell
 docker compose -f docker/docker-compose.yml up --build
-
-
-
