@@ -1,6 +1,8 @@
 # 🏗️ AI Architecture Designer (ML + LLM)
 
-ML + LLM system that converts a project idea into a full software architecture — including **structured plans**, **diagrams**, **repository scaffolds**, and **cloud deployment templates**.
+**An Applied Machine Learning Approach to Automated Software Architecture Recommendation**
+
+ML + LLM system that investigates whether **supervised machine learning models**, combined with a structured planning component, can predict **software architecture patterns, infrastructure components, and deployment complexity** from natural-language project descriptions.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
@@ -18,58 +20,68 @@ ML + LLM system that converts a project idea into a full software architecture �
 - **API Docs (Swagger):** https://arch-api.ai-coach-lab.com/docs  
 - **Health:** https://arch-api.ai-coach-lab.com/health  
 
-> If you run locally, you must update the UI API connection to `http://localhost:8000`.
+> These interfaces are provided for **demonstration and reproducibility**.  
+> The primary contribution of this project is the **machine learning models and their evaluation**, not the UI.
 
-## 🎯 Purpose of the Project
+## 📌 Project Overview
 
-This project demonstrates how **trained ML models** and an **agentic LLM planner** can work together to generate **production-ready software architectures** automatically.
+This project investigates whether **applied machine learning techniques** can be used to support software architecture recommendation tasks that are traditionally guided by experience or informal heuristics.
 
-It is built as both:
+The system is designed as an **applied machine learning research project**, with a working software prototype included to demonstrate and validate experimental results.
 
-- ✅ an **Applied Machine Learning project** (explicit trained models + metrics)
-- ✅ a **cloud-ready AI engineering system** (APIs, diagrams, repo generation, deployment templates)
+The primary contribution of this work is the **design, training, and evaluation of explicit ML models**.  
+A large language model (LLM) is used **only after ML inference** to convert predictions into structured, human-readable architecture plans.
 
-This is not prompt-only automation — it is a **hybrid ML + LLM decision system**.
+## 🎯 Research Objectives
 
-## ✅ What It Does
+This project addresses the following research questions:
 
-- **ML Preview Engine**
-  - Predicts an architecture pattern (monolith, microservices, data platform, ML system)
-  - Estimates complexity / risk with confidence metrics
-  - Recommends core components (DB, queue, auth, observability)
+- Can supervised ML models accurately classify software architecture patterns from textual project descriptions?
+- Can regression models estimate relative system complexity or deployment risk?
+- How do ML-based predictions compare against simple baseline methods?
 
-- **LLM Architecture Planner**
-  - Produces a **schema-validated** architecture plan (Pydantic)
-  - Converts user intent into deterministic structured JSON
-
-- **Diagram Generator (Mermaid)**
-  - Produces flow/component diagrams
-  - Rendered directly in the UI
-
-- **Repository Scaffold Generator**
-  - Generates a starter folder tree + boilerplate templates
-  - Optional Docker + GitHub Actions
-  - Downloads a ZIP scaffold
-
-- **Cloud Deployment Templates**
-  - Azure App Service deployment layout + guidance
-
-- **Feedback Loop (ML)**
-  - Captures user feedback for future retraining/evaluation
+The emphasis is on **quantitative evaluation, reproducibility, and interpretability**, consistent with applied machine learning coursework expectations.
 
 ## 🧠 Machine Learning Components
 
-| Model | Goal | Metrics |
-|------|------|---------|
-| Architecture Pattern Classifier | Predict overall system type | Accuracy, F1 |
-| Component Recommendation Model | Suggest infra/services | Precision@K |
-| Risk & Complexity Regressor | Estimate deployment difficulty | RMSE, R² |
-| Feedback Learning Loop | Improve future predictions | Lift vs baseline |
+The system includes multiple independently trained and evaluated ML models:
 
-**Feature sources**
-- Text embeddings from project descriptions  
-- Graph-derived architecture features  
-- Encoded cloud + infra attributes  
+| Model | Task | Evaluation Metrics |
+|------|------|-------------------|
+| Architecture Pattern Classifier | Predict system type (monolith, microservices, data platform, ML system) | Accuracy, Precision, Recall, F1 |
+| Component Recommendation Model | Recommend infrastructure components | Precision@K, Recall@K |
+| Complexity / Risk Regressor | Estimate deployment or maintenance complexity | RMSE, R² |
+| Baseline Models | Comparative benchmarks | Performance vs learned models |
+
+### Feature Sources
+- Textual embeddings derived from project descriptions  
+- Encoded project attributes (e.g., cloud usage, data requirements)  
+- Optional graph-derived architecture indicators  
+
+Baseline approaches (e.g., TF-IDF + Logistic Regression, mean regression) are implemented for comparison.
+
+## 📊 Experimental Evaluation
+
+All ML models are trained and evaluated using **explicit train / validation / test splits**.
+
+Evaluation artifacts include:
+- Metric tables
+- Confusion matrices (classification)
+- Error and loss curves (regression)
+- Baseline vs ML model comparisons
+
+All experiments are reproducible using scripts provided in the repository.
+
+## 🧩 Role of the LLM (Clarification)
+
+The large language model **is not used as a predictive model** and is **not trained or evaluated**.
+
+Its role is limited to:
+- Converting ML predictions into structured architecture plans
+- Enforcing schema validity (via Pydantic)
+- Producing deterministic JSON outputs
+
+All learning, prediction, and evaluation occur exclusively in the ML components.
 
 ## 🏗️ System Architecture
 
@@ -79,33 +91,41 @@ Mermaid source (version-controlled):
 
 - `docs/diagrams/architecture-prod.mmd`
 
-Rendered image for GitHub README:
+Rendered image:
 
 - `docs/screenshots/architecture-prod.png`
 
-![Production Architecture](./docs/screenshots/architecture-prod.png)
+![Production Architecture](docs/screenshots/architecture-prod.png)
 
 ### High-Level Flow
 
-1. User enters a project idea in Streamlit UI  
-2. ML preview generates pattern + confidence metrics  
-3. LLM planner produces schema-valid architecture JSON  
-4. Services generate Mermaid diagram + scaffold tree + ZIP  
+1. User enters a project description  
+2. ML models generate predictions and confidence scores  
+3. Structured planner converts predictions into an architecture specification  
+4. Supporting services generate diagrams and repository scaffolds  
 5. Outputs are shown in the UI and downloadable  
 
 ## 🖼️ App Preview
 
 ### Streamlit UI
-
 ![UI Dashboard](docs/screenshots/ui-dashboard.png)
 
 ### API Documentation (Swagger)
-
 ![API Docs](docs/screenshots/api-docs.png)
 
 ### Demo Walkthrough
-
 ![Demo](docs/screenshots/demo.gif)
+
+## 🗂️ Repository Structure (Relevant to Coursework)
+
+```text
+data/                 # Dataset files and descriptions
+models/               # Trained ML models
+evaluation/           # Metrics, plots, confusion matrices
+app/                  # FastAPI backend
+ui/                   # Streamlit interface
+docs/                 # Diagrams, screenshots
+docker/               # Reproducible deployment
 
 ## 🚀 Local Development (Docker)
 
