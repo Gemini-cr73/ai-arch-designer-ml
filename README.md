@@ -127,12 +127,15 @@ ui/                   # Streamlit interface
 docs/                 # Diagrams, screenshots
 docker/               # Reproducible deployment
 
-🌐 **Local App URLs (Docker)**
+```md
+## 🚀 Local Development (Docker)
+
+### ✅ Local URLs
 
 - **UI (Streamlit):** <http://localhost:8501>  
 - **API (FastAPI):** <http://localhost:8000>  
 - **API Docs (Swagger):** <http://localhost:8000/docs>  
-- **Health:** <http://localhost:8000/health>  
+- **Health:** <http://localhost:8000/health>
 
 ### ▶ Start Services
 
