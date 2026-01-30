@@ -131,12 +131,11 @@ docker/               # Reproducible deployment
 
 ### ✅ Local URLs
 
-- **UI:** http://localhost:8501  
-- **API:** http://localhost:8000  
-- **Docs:** http://localhost:8000/docs  
-- **Health:** http://localhost:8000/health  
+- **UI:** <http://localhost:8501>  
+- **API:** <http://localhost:8000>  
 
 ### ▶ Start Services
 
 ```powershell
-docker compose -f docker/docker-compose.yml up --build
+docker compose up --build
+
