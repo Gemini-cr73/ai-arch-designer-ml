@@ -131,7 +131,6 @@ docker/               # Reproducible deployment
 
 ### ✅ Local URLs
 
-```text
 - **UI:** <http://localhost:8501>  
 - **API:** <http://localhost:8000>  
 - **Docs:** <http://localhost:8000/docs>
