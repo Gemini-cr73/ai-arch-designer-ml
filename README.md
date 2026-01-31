@@ -1,4 +1,4 @@
-# 🏗️ AI Architecture Designer (ML + LLM)
+# 🏗️ AI Architecture Designer (ML + LLM-Hosted_API)
 
 **An Applied Machine Learning Approach to Automated Software Architecture Recommendation**
 
