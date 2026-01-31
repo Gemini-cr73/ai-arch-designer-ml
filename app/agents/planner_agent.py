@@ -8,13 +8,13 @@ from pydantic import ValidationError
 
 from app.agents.prompts.planner_prompt import SYSTEM_PROMPT, build_user_prompt
 from app.core.schemas.agent_plan import AgentArchitecturePlan
-from app.services.llm.ollama_client import OllamaClient
+from app.services.llm.groq_client import GroqClient
 
 _CODEBLOCK_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 class PlannerAgent:
-    def __init__(self, client: OllamaClient) -> None:
+    def __init__(self, client: GroqClient) -> None:
         self.client = client
 
     def plan(self, idea: dict[str, Any]) -> AgentArchitecturePlan:
@@ -35,7 +35,7 @@ class PlannerAgent:
         try:
             if hasattr(AgentArchitecturePlan, "model_validate"):
                 return AgentArchitecturePlan.model_validate(data)  # pydantic v2
-            return AgentArchitecturePlan(**data)  # fallback
+            return AgentArchitecturePlan(**data)  # pydantic v1 fallback
         except ValidationError as e:
             raise ValueError(
                 f"JSON did not match AgentArchitecturePlan schema:\n{e}\n\nData:\n{data}"

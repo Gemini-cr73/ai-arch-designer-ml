@@ -2,19 +2,24 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import ValidationError
 
 from app.agents.prompts.planner_prompt import SYSTEM_PROMPT, build_user_prompt
 from app.core.schemas.agent_plan import AgentArchitecturePlan
-from app.services.llm.ollama_client import OllamaClient
 
 _CODEBLOCK_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
+class LLMClient(Protocol):
+    """Any LLM client (Groq, Ollama, etc.) must implement chat()."""
+
+    def chat(self, system: str, user: str) -> str: ...
+
+
 class PlannerAgent:
-    def __init__(self, client: OllamaClient) -> None:
+    def __init__(self, client: LLMClient) -> None:
         self.client = client
 
     def plan(self, idea: dict[str, Any]) -> AgentArchitecturePlan:

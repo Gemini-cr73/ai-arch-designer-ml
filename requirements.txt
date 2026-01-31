@@ -89,3 +89,7 @@ watchdog==6.0.0
 watchfiles==1.1.1
 websockets==15.0.1
 yfinance==0.2.65
+
+# ✅ NEW: Groq hosted LLM client
+groq==0.31.0
+

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -12,7 +13,10 @@ from app.core.schemas.inputs import ProjectIdeaInput
 from app.core.schemas.pipeline import DiagramPipelineRequest, DiagramPipelineResponse
 from app.core.schemas.scaffold import ScaffoldRequest, ScaffoldResponse
 from app.services.diagrams.mermaid_builder import build_mermaid
-from app.services.llm.ollama_client import OllamaClient
+
+# ✅ IMPORTANT: Azure deployment must NOT depend on Ollama.
+# We use Groq (hosted LLM) only.
+from app.services.llm.groq_client import GroqClient
 from app.services.planner.planner_service import ArchitecturePlanner
 from app.services.scaffold.scaffold_generator import generate_repo_scaffold
 from app.services.scaffold.zip_export import build_scaffold_zip_bytes
@@ -22,7 +26,7 @@ router = APIRouter(prefix="/architect", tags=["Architecture"])
 # Milestone 1: ML-based pattern inference -> ArchitecturePlan
 planner = ArchitecturePlanner()
 
-# Milestone 2/3/4: Ollama-based planner agent (lazy init)
+# Milestone 2/3/4: LLM-based planner agent (lazy init)
 _AGENT: PlannerAgent | None = None
 
 
@@ -35,7 +39,19 @@ def _as_dict(model_obj: Any) -> dict[str, Any]:
     return model_obj.dict()
 
 
-def _is_ollama_down(msg: str) -> bool:
+def _get_env(name: str, default: str | None = None) -> str | None:
+    val = os.getenv(name)
+    if val is None or str(val).strip() == "":
+        return default
+    return val
+
+
+def _llm_provider() -> str:
+    # Accept: LLM_PROVIDER (values like "groq", "ollama", etc.)
+    return (_get_env("LLM_PROVIDER", "groq") or "groq").strip().lower()
+
+
+def _is_provider_down(msg: str) -> bool:
     msg = (msg or "").lower()
     return any(
         s in msg
@@ -44,18 +60,59 @@ def _is_ollama_down(msg: str) -> bool:
             "refused",
             "timed out",
             "timeout",
-            "localhost:11434",
             "failed to establish a new connection",
             "max retries exceeded",
+            "service unavailable",
+            "502",
+            "503",
+            "504",
+            "unauthorized",
+            "forbidden",
+            "api key",
+            "invalid_api_key",
+            "authentication",
+            "permission",
+            "rate limit",
+            "quota",
         ]
     )
 
 
 def _get_agent() -> PlannerAgent:
+    """
+    Build the PlannerAgent using the configured provider.
+
+    ✅ Default: Groq (hosted) for Azure.
+    ❌ Ollama is intentionally unsupported in Azure.
+    """
     global _AGENT
-    if _AGENT is None:
-        ollama = OllamaClient(base_url="http://localhost:11434", model="llama3.1:8b")
-        _AGENT = PlannerAgent(client=ollama)
+    if _AGENT is not None:
+        return _AGENT
+
+    provider = _llm_provider()
+    if provider != "groq":
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Invalid LLM_PROVIDER='{provider}'. Azure deployment must use Groq. "
+                "Set LLM_PROVIDER=groq in Azure App Settings."
+            ),
+        )
+
+    groq_api_key = _get_env("GROQ_API_KEY")
+    groq_model = _get_env("GROQ_MODEL", "llama-3.1-8b-instant")
+
+    if not groq_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "GROQ_API_KEY is missing in environment variables. "
+                "Add GROQ_API_KEY in Azure App Settings and restart the Web App."
+            ),
+        )
+
+    client = GroqClient(api_key=groq_api_key, model=groq_model)
+    _AGENT = PlannerAgent(client=client)
     return _AGENT
 
 
@@ -68,11 +125,11 @@ def _resolve_plan_from_scaffold_payload(
     - Else if payload.idea provided, call agent.plan()
     - Else 422
     """
-    agent = _get_agent()
-
     if payload.plan is not None:
         return payload.plan
+
     if payload.idea is not None:
+        agent = _get_agent()
         return agent.plan(_as_dict(payload.idea))
 
     raise HTTPException(
@@ -94,17 +151,19 @@ def preview_architecture(idea: ProjectIdeaInput) -> ArchitecturePlan:
 
 @router.post("/agent-plan", response_model=AgentArchitecturePlan)
 def agent_plan(idea: ProjectIdeaInput) -> AgentArchitecturePlan:
-    """Milestone 2: Ollama -> structured AgentArchitecturePlan."""
+    """Milestone 2: Groq -> structured AgentArchitecturePlan."""
     try:
         agent = _get_agent()
         return agent.plan(_as_dict(idea))
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_ollama_down(str(e)):
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -115,8 +174,8 @@ def diagram_from_idea(payload: DiagramPipelineRequest) -> DiagramPipelineRespons
     """Milestone 3: idea -> agent-plan -> mermaid."""
     try:
         agent = _get_agent()
-
         plan = agent.plan(_as_dict(payload.idea))
+
         mermaid = build_mermaid(
             plan=plan,
             diagram_type=payload.diagram_type,
@@ -131,13 +190,15 @@ def diagram_from_idea(payload: DiagramPipelineRequest) -> DiagramPipelineRespons
             render_url=None,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_ollama_down(str(e)):
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -163,13 +224,15 @@ def scaffold_repo(payload: ScaffoldRequest) -> ScaffoldResponse:
             plan=plan,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_ollama_down(str(e)):
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -185,7 +248,7 @@ def scaffold_repo_zip(payload: ScaffoldRequest) -> Response:
             plan=plan,
             project_slug=payload.project_slug,
             include_docker=payload.include_docker,
-            include_github_actions=payload.include_github_actions,
+            include_github_actions=payload.include_docker,
         )
 
         zip_bytes = build_scaffold_zip_bytes(files)
@@ -197,13 +260,15 @@ def scaffold_repo_zip(payload: ScaffoldRequest) -> Response:
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_ollama_down(str(e)):
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "Ollama is not reachable. Start Ollama and confirm it is accessible at "
-                    "http://localhost:11434 (and the model tag exists)."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))

@@ -53,7 +53,7 @@ if st.session_state.sidebar_hidden:
 
 
 # =========================================================
-# Config
+# Config helpers
 # =========================================================
 def _get_secret(key: str) -> str | None:
     try:
@@ -67,21 +67,21 @@ def _get_secret(key: str) -> str | None:
 
 def get_api_public_url() -> str:
     """
-    What Streamlit should DISPLAY in the sidebar for users to copy/paste.
-    - Prefer API_PUBLIC_URL if set (compose sets this to http://localhost:8000)
+    URL shown to the user (sidebar).
+    Prefer API_PUBLIC_URL if set.
     """
     v = os.getenv("API_PUBLIC_URL") or _get_secret("API_PUBLIC_URL")
     if v:
         return v.rstrip("/")
-    # fallback: show internal if that's all we have
     v2 = os.getenv("API_BASE_URL") or _get_secret("API_BASE_URL")
     return (v2 or "http://localhost:8000").rstrip("/")
 
 
 def get_api_internal_url() -> str:
     """
-    What Streamlit should CALL server-side.
-    - In docker-compose, this must be http://api:8000 (service name)
+    URL used by Streamlit server-side to call the API.
+    In docker-compose: http://api:8000
+    In Azure: https://arch-api.ai-coach-lab.com
     """
     v = os.getenv("API_BASE_URL") or _get_secret("API_BASE_URL")
     return (v or "http://localhost:8000").rstrip("/")
@@ -90,20 +90,21 @@ def get_api_internal_url() -> str:
 API_PUBLIC_URL = get_api_public_url()
 API_INTERNAL_URL = get_api_internal_url()
 
-# Endpoints MUST use the INTERNAL URL (container -> container calls)
 PREVIEW_ENDPOINT = f"{API_INTERNAL_URL}/architect/preview"
 AGENT_PLAN_ENDPOINT = f"{API_INTERNAL_URL}/architect/agent-plan"
 DIAGRAM_ENDPOINT = f"{API_INTERNAL_URL}/architect/diagram-from-idea"
 SCAFFOLD_ENDPOINT = f"{API_INTERNAL_URL}/architect/scaffold"
 ZIP_ENDPOINT = f"{API_INTERNAL_URL}/architect/scaffold/zip"
 
-DEFAULT_TIMEOUT = 60
+DEFAULT_TIMEOUT = 90  # Groq calls can take longer than local Ollama sometimes
 
 
 # =========================================================
-# API Helper (better errors)
+# API Helper
 # =========================================================
-def call_api(method: str, url: str, payload: dict | None = None, timeout: int = 60):
+def call_api(
+    method: str, url: str, payload: dict | None = None, timeout: int = DEFAULT_TIMEOUT
+):
     try:
         if method.upper() == "POST":
             r = requests.post(url, json=payload, timeout=timeout)
@@ -118,7 +119,13 @@ def call_api(method: str, url: str, payload: dict | None = None, timeout: int = 
                 st.code(r.text)
             return None
 
-        return r.json()
+        # Some endpoints may return empty response bodies; guard
+        try:
+            return r.json()
+        except Exception:
+            st.error("API returned non-JSON response.")
+            st.code(r.text)
+            return None
 
     except requests.RequestException as e:
         st.error(f"Network/API call failed: {e}")
@@ -139,10 +146,13 @@ def mermaid_ink_url(mermaid_code: str) -> str:
 
 
 def api_post_zip(url: str, payload: dict[str, Any]):
-    r = requests.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
-    if r.status_code != 200:
-        return None, r.text
-    return r, None
+    try:
+        r = requests.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
+        if r.status_code != 200:
+            return None, r.text
+        return r, None
+    except requests.RequestException as e:
+        return None, str(e)
 
 
 def guess_zip_filename(headers: dict[str, str]) -> str:
@@ -167,10 +177,8 @@ st.caption("Turn project ideas into architecture plans, diagrams, and repo scaff
 # ---------------- Sidebar ----------------
 with st.sidebar:
     st.subheader("🔌 API Connection")
-    # SHOW the public URL (what user can open/copy)
     st.code(API_PUBLIC_URL)
 
-    # Optional: show internal URL for debugging
     with st.expander("Debug (internal URL)", expanded=False):
         st.code(API_INTERNAL_URL)
 
@@ -187,7 +195,6 @@ with st.sidebar:
         "Scale", options=["Prototype", "MVP", "Production"], value="MVP"
     )
 
-    # ✅ Friendly UI labels → safe backend enum
     ui_label = st.selectbox(
         "Diagram type", ["Flow", "Component", "Deployment"], index=0
     )
@@ -234,7 +241,6 @@ with col2:
     st.write("- LLM Agent Plan")
     st.write("- Mermaid Diagram")
     st.write("- Scaffold ZIP")
-
 
 # =========================================================
 # Session State
@@ -321,7 +327,6 @@ if generate_btn:
         status_box.success("✅ Done")
     else:
         st.error(zip_err)
-
 
 # =========================================================
 # Display Results

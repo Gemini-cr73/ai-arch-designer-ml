@@ -1,50 +1,32 @@
-# ================================
-# Python / Virtual Environments
-# ================================
-.venv/
+# VCS
+.git
+.gitignore
+
+# Python caches
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# ================================
-# Git / OS
-# ================================
-.git/
-.gitignore
+# Virtual envs
+.venv/
+venv/
+
+# OS / editor
 .DS_Store
 Thumbs.db
+.vscode/
 
-# ================================
-# Project folders NOT needed in image
-# ================================
-data/
-docs/
-tests/
-scripts/
+# Local build / tooling
+dist/
+build/
+*.egg-info/
 
-# ================================
-# ML Artifacts Handling
-# ================================
-# Ignore all artifacts by default
-artifacts/*
-
-# BUT keep trained production models
-!artifacts/models/
-!artifacts/models/**
-
-# ================================
-# Large / generated files
-# ================================
-*.zip
+# Logs
 *.log
-*.png
-*.jpg
-*.jpeg
-*.gif
 
-# ================================
-# Node / misc (safety)
-# ================================
-node_modules/
+# IMPORTANT:
+# Do NOT ignore artifacts/ because we need artifacts/models/*.joblib in the image.

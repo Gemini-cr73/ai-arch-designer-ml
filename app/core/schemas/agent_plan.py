@@ -4,6 +4,12 @@ from typing import Any
 
 from pydantic import BaseModel
 
+try:
+    # Pydantic v2
+    from pydantic import ConfigDict
+except Exception:  # pragma: no cover
+    ConfigDict = None  # type: ignore
+
 
 class ComponentSpec(BaseModel):
     name: str
@@ -14,11 +20,16 @@ class ComponentSpec(BaseModel):
 class AgentArchitecturePlan(BaseModel):
     components: list[ComponentSpec]
 
-    # ✅ FIX: LLM may return deployment as a string OR as an object
-    deployment: str | dict[str, Any]
+    # LLMs sometimes return deployment as a string OR as a dict/object
+    deployment: str | dict[str, Any] = ""
 
-    scaling: str
-    security: list[str]
+    scaling: str = ""
+    security: list[str] = []
 
-    class Config:
-        extra = "allow"  # tolerate extra keys the LLM might include
+    # Be tolerant of extra keys the LLM may include
+    if ConfigDict is not None:
+        model_config = ConfigDict(extra="allow")
+    else:
+
+        class Config:
+            extra = "allow"

@@ -8,10 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir .
+# Install Python deps FIRST
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir -r /app/requirements.txt
 
-COPY . .
+# Copy the rest of the code
+COPY . /app
 
 EXPOSE 8501
-CMD ["bash", "-lc", "streamlit run app/ui/streamlit_app.py --server.address 0.0.0.0 --server.port ${PORT:-8501}"]
+
+# Azure sets PORT automatically; default to 8501 for local
+CMD ["bash", "-lc", "streamlit run ui/streamlit_app.py --server.address 0.0.0.0 --server.port ${PORT:-8501}"]

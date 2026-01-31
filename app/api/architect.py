@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -14,7 +13,7 @@ from app.core.schemas.inputs import ProjectIdeaInput
 from app.core.schemas.pipeline import DiagramPipelineRequest, DiagramPipelineResponse
 from app.core.schemas.scaffold import ScaffoldRequest, ScaffoldResponse
 from app.services.diagrams.mermaid_builder import build_mermaid
-from app.services.llm.ollama_client import OllamaClient
+from app.services.llm.groq_client import GroqClient
 from app.services.planner.planner_service import ArchitecturePlanner
 from app.services.scaffold.scaffold_generator import generate_repo_scaffold
 from app.services.scaffold.zip_export import build_scaffold_zip_bytes
@@ -24,7 +23,7 @@ router = APIRouter(prefix="/architect", tags=["Architecture"])
 # Milestone 1: ML-based pattern inference -> ArchitecturePlan
 planner = ArchitecturePlanner()
 
-# Milestone 2/3/4: Ollama-based planner agent (lazy init)
+# Milestone 2/3/4: Groq-based planner agent (lazy init)
 _AGENT: PlannerAgent | None = None
 
 
@@ -37,7 +36,7 @@ def _as_dict(model_obj: Any) -> dict[str, Any]:
     return model_obj.dict()
 
 
-def _is_ollama_down(msg: str) -> bool:
+def _is_llm_down(msg: str) -> bool:
     msg = (msg or "").lower()
     return any(
         s in msg
@@ -50,40 +49,31 @@ def _is_ollama_down(msg: str) -> bool:
             "max retries exceeded",
             "name or service not known",
             "temporary failure in name resolution",
+            "unauthorized",
+            "invalid api key",
+            "api key",
+            "forbidden",
+            "rate limit",
+            "429",
         ]
     )
 
 
-def _get_ollama_base_url() -> str:
-    # Prefer explicit env vars (works in Docker + Azure)
-    url = (
-        os.getenv("OLLAMA_BASE_URL")
-        or os.getenv("OLLAMA_HOST")
-        or os.getenv("OLLAMA_URL")
-    )
-    if url:
-        return url.rstrip("/")
-
-    # If running inside Docker, use the compose service DNS name
-    if Path("/.dockerenv").exists():
-        return "http://ollama:11434"
-
-    # Local fallback (non-docker)
-    return "http://localhost:11434"
-
-
-def _get_ollama_model() -> str:
-    # Prefer env var; default to what you actually pulled
-    return os.getenv("OLLAMA_MODEL", "llama3.1:latest")
+def _get_groq_model() -> str:
+    return os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
 
 
 def _get_agent() -> PlannerAgent:
     global _AGENT
     if _AGENT is None:
-        base = _get_ollama_base_url()
-        model = _get_ollama_model()
-        ollama = OllamaClient(base_url=base, model=model)
-        _AGENT = PlannerAgent(client=ollama)
+        api_key = os.getenv("GROQ_API_KEY", "").strip()
+        if not api_key:
+            raise RuntimeError(
+                "Missing GROQ_API_KEY. Set it as an environment variable in the API app."
+            )
+        model = _get_groq_model()
+        groq = GroqClient(api_key=api_key, model=model)
+        _AGENT = PlannerAgent(client=groq)
     return _AGENT
 
 
@@ -122,19 +112,18 @@ def preview_architecture(idea: ProjectIdeaInput) -> ArchitecturePlan:
 
 @router.post("/agent-plan", response_model=AgentArchitecturePlan)
 def agent_plan(idea: ProjectIdeaInput) -> AgentArchitecturePlan:
-    """Milestone 2: Ollama -> structured AgentArchitecturePlan."""
+    """Milestone 2: Groq -> structured AgentArchitecturePlan."""
     try:
         agent = _get_agent()
         return agent.plan(_as_dict(idea))
     except Exception as e:
-        if _is_ollama_down(str(e)):
-            base = _get_ollama_base_url()
-            model = _get_ollama_model()
+        if _is_llm_down(str(e)):
+            model = _get_groq_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
-                    "Confirm Ollama is running and the model tag exists."
+                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
+                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -160,16 +149,14 @@ def diagram_from_idea(payload: DiagramPipelineRequest) -> DiagramPipelineRespons
             plan=plan,
             render_url=None,
         )
-
     except Exception as e:
-        if _is_ollama_down(str(e)):
-            base = _get_ollama_base_url()
-            model = _get_ollama_model()
+        if _is_llm_down(str(e)):
+            model = _get_groq_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
-                    "Confirm Ollama is running and the model tag exists."
+                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
+                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -194,16 +181,14 @@ def scaffold_repo(payload: ScaffoldRequest) -> ScaffoldResponse:
             files=files,
             plan=plan,
         )
-
     except Exception as e:
-        if _is_ollama_down(str(e)):
-            base = _get_ollama_base_url()
-            model = _get_ollama_model()
+        if _is_llm_down(str(e)):
+            model = _get_groq_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
-                    "Confirm Ollama is running and the model tag exists."
+                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
+                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -232,14 +217,13 @@ def scaffold_repo_zip(payload: ScaffoldRequest) -> Response:
         )
 
     except Exception as e:
-        if _is_ollama_down(str(e)):
-            base = _get_ollama_base_url()
-            model = _get_ollama_model()
+        if _is_llm_down(str(e)):
+            model = _get_groq_model()
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Ollama is not reachable from the API. Tried base_url={base}, model={model}. "
-                    "Confirm Ollama is running and the model tag exists."
+                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
+                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
