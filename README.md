@@ -1,143 +1,141 @@
-# 🏗️ AI Architecture Designer (ML + LLM-Hosted_API)
+# 🏗️ AI Architecture Designer (ML-First Decision Support)
 
-**An Applied Machine Learning Approach to Automated Software Architecture Recommendation**
+**Final Project — DATA 761: Applied Machine Learning**
 
-ML + LLM system that investigates whether **supervised machine learning models**, combined with a structured planning component, can predict **software architecture patterns, infrastructure components, and deployment complexity** from natural-language project descriptions.
+An applied machine learning system that investigates whether **supervised ML models** can provide **empirically evaluable decision support** for early-stage software architecture design from natural-language project descriptions.
+
+> ⚠️ This project is **ML-first**.  
+> The UI and LLM components exist **only to demonstrate ML results**, not to replace them.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Course-DATA%20761-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Focus-Applied_Machine_Learning-success?style=for-the-badge" />
   <img src="https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge&logo=fastapi" />
   <img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit" />
   <img src="https://img.shields.io/badge/ML-Scikit--Learn-00427E?style=for-the-badge&logo=scikitlearn" />
-  <img src="https://img.shields.io/badge/LLM-Ollama_Local-000000?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Cloud-Azure_App_Service-0078D4?style=for-the-badge&logo=microsoftazure" />
+  <img src="https://img.shields.io/badge/LLM-Groq_API_(Optional)-black?style=for-the-badge" />
 </p>
 
-## 🌐 Live App URLs
+## 📌 Project Motivation
 
-- **UI (Streamlit):** https://arch.ai-coach-lab.com  
-- **API (FastAPI):** https://arch-api.ai-coach-lab.com  
-- **API Docs (Swagger):** https://arch-api.ai-coach-lab.com/docs  
-- **Health:** https://arch-api.ai-coach-lab.com/health  
+Early software architecture decisions are **high-impact and difficult to reverse**, yet they are often made using informal heuristics or prior experience.
 
-> These interfaces are provided for **demonstration and reproducibility**.  
-> The primary contribution of this project is the **machine learning models and their evaluation**, not the UI.
+Modern systems introduce additional complexity through:
+- cloud platforms
+- data pipelines
+- machine learning components
 
-## 📌 Project Overview
+This project explores whether **supervised machine learning** can provide **consistent, measurable, and reproducible decision support** for these early design choices.
 
-This project investigates whether **applied machine learning techniques** can be used to support software architecture recommendation tasks that are traditionally guided by experience or informal heuristics.
+## 🎯 Research Questions
 
-The system is designed as an **applied machine learning research project**, with a working software prototype included to demonstrate and validate experimental results.
+This project addresses the following applied ML questions:
 
-The primary contribution of this work is the **design, training, and evaluation of explicit ML models**.  
-A large language model (LLM) is used **only after ML inference** to convert predictions into structured, human-readable architecture plans.
+- Can supervised ML models classify architecture patterns from textual project descriptions?
+- Can regression models estimate relative deployment or system complexity?
+- How do learned ML models compare against explicit **baseline methods**?
 
-## 🎯 Research Objectives
+The emphasis is on **evaluation, comparison, and interpretability**, consistent with graduate-level applied ML expectations.
 
-This project addresses the following research questions:
+## 🧠 Machine Learning Contributions (Core)
 
-- Can supervised ML models accurately classify software architecture patterns from textual project descriptions?
-- Can regression models estimate relative system complexity or deployment risk?
-- How do ML-based predictions compare against simple baseline methods?
+### Algorithms Evaluated
 
-The emphasis is on **quantitative evaluation, reproducibility, and interpretability**, consistent with applied machine learning coursework expectations.
+| Algorithm | Purpose |
+|---------|--------|
+| Logistic Regression | Interpretable baseline |
+| Random Forest | Non-linear ensemble |
+| Support Vector Machine (SVM) | High-dimensional feature modeling |
 
-## 🧠 Machine Learning Components
+Multiple algorithms are required to:
+- establish baselines
+- justify performance claims
+- meet empirical ML standards
 
-The system includes multiple independently trained and evaluated ML models:
+## 📊 Learning Tasks & Metrics
 
-| Model | Task | Evaluation Metrics |
-|------|------|-------------------|
-| Architecture Pattern Classifier | Predict system type (monolith, microservices, data platform, ML system) | Accuracy, Precision, Recall, F1 |
-| Component Recommendation Model | Recommend infrastructure components | Precision@K, Recall@K |
-| Complexity / Risk Regressor | Estimate deployment or maintenance complexity | RMSE, R² |
-| Baseline Models | Comparative benchmarks | Performance vs learned models |
+| Task | Model Type | Metrics |
+|----|----------|--------|
+| Architecture Pattern Classification | Classification | Accuracy, Precision, Recall, F1 |
+| Component Recommendation | Ranking / Multi-Label | Precision@K, Recall@K |
+| Deployment Complexity Estimation | Regression | RMSE, R² |
+| Baseline Comparison | Control Models | Relative performance |
 
-### Feature Sources
-- Textual embeddings derived from project descriptions  
-- Encoded project attributes (e.g., cloud usage, data requirements)  
-- Optional graph-derived architecture indicators  
+All models use **train / validation / test splits**.
 
-Baseline approaches (e.g., TF-IDF + Logistic Regression, mean regression) are implemented for comparison.
+## 🧩 Feature Engineering
 
-## 📊 Experimental Evaluation
+Features are derived from:
+- natural-language project descriptions (vectorized text)
+- encoded system attributes (scale, data intensity, cloud usage)
+- structured metadata indicators
 
-All ML models are trained and evaluated using **explicit train / validation / test splits**.
+Baseline feature pipelines are implemented for comparison.
+
+## 📈 Experimental Evaluation
 
 Evaluation artifacts include:
-- Metric tables
-- Confusion matrices (classification)
-- Error and loss curves (regression)
-- Baseline vs ML model comparisons
+- ACM-style result tables
+- confusion matrices
+- regression error analysis
+- baseline vs ML model comparisons
 
-All experiments are reproducible using scripts provided in the repository.
+All experiments are **reproducible** using scripts in this repository.
 
-## 🧩 Role of the LLM (Clarification)
+## 🧠 Role of the LLM (Clarification)
 
-The large language model **is not used as a predictive model** and is **not trained or evaluated**.
+A hosted LLM via the **Groq API** is used **only after ML inference**.
 
-Its role is limited to:
-- Converting ML predictions into structured architecture plans
-- Enforcing schema validity (via Pydantic)
-- Producing deterministic JSON outputs
+### The LLM is NOT used for:
+- learning
+- prediction
+- evaluation
+- optimization
 
-All learning, prediction, and evaluation occur exclusively in the ML components.
+### The LLM is used only for:
+- formatting ML outputs into structured architecture plans
+- enforcing schema validity
+- improving human readability
+
+The LLM can be removed without affecting ML results.
 
 ## 🏗️ System Architecture
 
-### Production Architecture
+### High-Level ML-First Flow
 
-Mermaid source (version-controlled):
+1. User submits a project description  
+2. Feature extraction pipeline processes input  
+3. ML models generate predictions and confidence scores  
+4. Optional planner formats results  
+5. Outputs are displayed via API and UI  
 
-- `docs/diagrams/architecture-prod.mmd`
-
-Rendered image:
-
-- `docs/screenshots/architecture-prod.png`
+### 📐 Production Architecture Diagram
 
 ![Production Architecture](docs/screenshots/architecture-prod.png)
 
-### High-Level Flow
+> Mermaid source: `docs/diagrams/architecture-prod.mmd`
 
-1. User enters a project description  
-2. ML models generate predictions and confidence scores  
-3. Structured planner converts predictions into an architecture specification  
-4. Supporting services generate diagrams and repository scaffolds  
-5. Outputs are shown in the UI and downloadable  
+## 🖼️ Application Screenshots
 
-## 🖼️ App Preview
+### Streamlit UI — Architecture Recommendations
 
-### Streamlit UI
-![UI Dashboard](docs/screenshots/ui-dashboard.png)
+![Streamlit UI](docs/screenshots/ui-dashboard.png)
 
-### API Documentation (Swagger)
+### FastAPI — Swagger Documentation
+
 ![API Docs](docs/screenshots/api-docs.png)
 
-### Demo Walkthrough
-![Demo](docs/screenshots/demo.gif)
+### End-to-End Demo Walkthrough
 
-## 🗂️ Repository Structure (Relevant to Coursework)
+![Demo Walkthrough](docs/screenshots/demo.gif)
+
+## 🗂️ Repository Structure (Course-Relevant)
 
 ```text
-data/                 # Dataset files and descriptions
-models/               # Trained ML models
-evaluation/           # Metrics, plots, confusion matrices
-app/                  # FastAPI backend
-ui/                   # Streamlit interface
-docs/                 # Diagrams, screenshots
-docker/               # Reproducible deployment
-
-```md
-## 🚀 Local Development (Docker)
-
-### ✅ Local URLs
-
-- **UI (Streamlit):** <http://localhost:8501>  
-- **API (FastAPI):** <http://localhost:8000>  
-- **API Docs (Swagger):** <http://localhost:8000/docs>  
-- **Health:** <http://localhost:8000/health>
-
-### ▶ Start Services
-
-```powershell
-docker compose -f docker/docker-compose.yml up --build
+data/           # Datasets and documentation
+models/         # Trained ML models
+evaluation/     # Metrics, plots, confusion matrices
+app/            # FastAPI backend
+ui/             # Streamlit UI (demonstration only)
+docs/           # Diagrams and screenshots
+docker/         # Reproducible environment
