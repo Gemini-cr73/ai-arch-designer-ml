@@ -12,7 +12,7 @@ AI Architecture Designer investigates whether **supervised machine learning mode
   <img src="https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge&logo=fastapi" />
   <img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit" />
   <img src="https://img.shields.io/badge/ML-Scikit--Learn-00427E?style=for-the-badge&logo=scikitlearn" />
-  <img src="https://img.shields.io/badge/LLM-Ollama_Local-000000?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/LLM-Groq_API-black?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Cloud-Azure_App_Service-0078D4?style=for-the-badge&logo=microsoftazure" />
 </p>
 
