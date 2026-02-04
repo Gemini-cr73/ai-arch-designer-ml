@@ -1,20 +1,30 @@
 # 🏗️ AI Architecture Designer (ML-First Decision Support)
 
-**Final Project — DATA 761: Applied Machine Learning**
+**An Applied Machine Learning System for Early-Stage Software Architecture Recommendation**
 
-An applied machine learning system that investigates whether **supervised ML models** can provide **empirically evaluable decision support** for early-stage software architecture design from natural-language project descriptions.
+AI Architecture Designer investigates whether **supervised machine learning models** can provide **empirically evaluable decision support** for early-stage software architecture design using natural-language project descriptions.
 
 > ⚠️ This project is **ML-first**.  
 > The UI and LLM components exist **only to demonstrate ML results**, not to replace them.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Course-DATA%20761-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Focus-Applied_Machine_Learning-success?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
   <img src="https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge&logo=fastapi" />
   <img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit" />
   <img src="https://img.shields.io/badge/ML-Scikit--Learn-00427E?style=for-the-badge&logo=scikitlearn" />
-  <img src="https://img.shields.io/badge/LLM-Groq_API_(Optional)-black?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/LLM-Ollama_Local-000000?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Cloud-Azure_App_Service-0078D4?style=for-the-badge&logo=microsoftazure" />
 </p>
+
+## 🌐 Live App URLs
+
+- **UI (Streamlit):** https://arch.ai-coach-lab.com  
+- **API (FastAPI):** https://arch-api.ai-coach-lab.com  
+- **API Docs (Swagger):** https://arch-api.ai-coach-lab.com/docs  
+- **Health:** https://arch-api.ai-coach-lab.com/health  
+
+> These interfaces are provided for **demonstration and reproducibility**.  
+> The primary contribution of this project is the **machine learning models and their evaluation**, not the UI.
 
 ## 📌 Project Motivation
 
