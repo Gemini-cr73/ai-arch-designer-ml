@@ -144,7 +144,7 @@ The LLM can be removed without affecting ML results.
 
 ## 📐 Production Architecture Diagram
 
-![Production Architecture](docs/screenshots/architecture-prod.png)
+![Production Architecture](docs/screenshots/architecture-prod-v2.png)
 
 > Mermaid source: `docs/diagrams/architecture-prod.mmd`
 
@@ -152,15 +152,15 @@ The LLM can be removed without affecting ML results.
 
 ### Streamlit UI — Architecture Recommendations
 
-![Streamlit UI](docs/screenshots/ui-dashboard.png)
+![Streamlit UI](docs/screenshots/ui-dashboard-v2.png)
 
 ### Streamlit UI — Continued View
 
-![Streamlit UI Continued](docs/screenshots/ui-dashboard-continues.png)
+![Streamlit UI Continued](docs/screenshots/ui-dashboard-continues-v2.png)
 
 ### FastAPI — Swagger Documentation
 
-![API Docs](docs/screenshots/api-docs.png)
+![API Docs](docs/screenshots/api-docs-v2.png)
 
 ## 🗂️ Repository Structure (Course-Relevant)
 
