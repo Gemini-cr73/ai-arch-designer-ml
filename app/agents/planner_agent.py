@@ -1,3 +1,5 @@
+# app/agents/planner_agent.py
+
 from __future__ import annotations
 
 import json
@@ -27,15 +29,15 @@ class PlannerAgent:
         try:
             data = json.loads(json_text)
         except json.JSONDecodeError as e:
-            snippet = json_text[:1200]
+            snippet = json_text[:1000]
             raise ValueError(
                 f"Invalid JSON from model: {e}\n\n--- Extracted JSON (trimmed) ---\n{snippet}"
             )
 
         try:
             if hasattr(AgentArchitecturePlan, "model_validate"):
-                return AgentArchitecturePlan.model_validate(data)  # pydantic v2
-            return AgentArchitecturePlan(**data)  # pydantic v1 fallback
+                return AgentArchitecturePlan.model_validate(data)  # Pydantic v2
+            return AgentArchitecturePlan(**data)  # Pydantic v1 fallback
         except ValidationError as e:
             raise ValueError(
                 f"JSON did not match AgentArchitecturePlan schema:\n{e}\n\nData:\n{data}"
@@ -46,15 +48,15 @@ class PlannerAgent:
         if not text:
             raise ValueError("Model returned empty response.")
 
-        # 1) Prefer fenced JSON
+        # Prefer fenced JSON
         m = _CODEBLOCK_JSON_RE.search(text)
         if m:
             return m.group(1).strip()
 
-        # 2) Otherwise extract first balanced JSON object
+        # Extract first balanced JSON object
         first = text.find("{")
         if first == -1:
-            raise ValueError(f"Model did not return a JSON object. Raw output:\n{raw}")
+            raise ValueError(f"Model did not return a JSON object.\nRaw output:\n{raw}")
 
         depth = 0
         in_string = False
@@ -84,7 +86,7 @@ class PlannerAgent:
                     return text[first : i + 1].strip()
 
         raise ValueError(
-            "Could not find a complete balanced JSON object in the model output.\n"
+            "Could not find a complete balanced JSON object in model output.\n"
             f"Raw output:\n{raw}"
         )
 

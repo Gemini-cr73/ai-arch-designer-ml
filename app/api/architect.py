@@ -1,18 +1,24 @@
+# app/api/architect.py
+
 from __future__ import annotations
 
 import os
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi import APIRouter, HTTPException, Response
 
 from app.agents.planner_agent import PlannerAgent
+
+# ✅ Correct imports (your real package is app/core/schemas)
 from app.core.schemas.agent_plan import AgentArchitecturePlan
 from app.core.schemas.architecture import ArchitecturePlan
 from app.core.schemas.inputs import ProjectIdeaInput
 from app.core.schemas.pipeline import DiagramPipelineRequest, DiagramPipelineResponse
 from app.core.schemas.scaffold import ScaffoldRequest, ScaffoldResponse
 from app.services.diagrams.mermaid_builder import build_mermaid
+
+# ✅ Azure deployment must NOT depend on Ollama.
+# We use Groq (hosted LLM) only.
 from app.services.llm.groq_client import GroqClient
 from app.services.planner.planner_service import ArchitecturePlanner
 from app.services.scaffold.scaffold_generator import generate_repo_scaffold
@@ -23,7 +29,7 @@ router = APIRouter(prefix="/architect", tags=["Architecture"])
 # Milestone 1: ML-based pattern inference -> ArchitecturePlan
 planner = ArchitecturePlanner()
 
-# Milestone 2/3/4: Groq-based planner agent (lazy init)
+# Milestone 2/3/4: LLM-based planner agent (lazy init)
 _AGENT: PlannerAgent | None = None
 
 
@@ -36,7 +42,19 @@ def _as_dict(model_obj: Any) -> dict[str, Any]:
     return model_obj.dict()
 
 
-def _is_llm_down(msg: str) -> bool:
+def _get_env(name: str, default: str | None = None) -> str | None:
+    val = os.getenv(name)
+    if val is None or str(val).strip() == "":
+        return default
+    return val
+
+
+def _llm_provider() -> str:
+    # Accept: LLM_PROVIDER (values like "groq", "ollama", etc.)
+    return (_get_env("LLM_PROVIDER", "groq") or "groq").strip().lower()
+
+
+def _is_provider_down(msg: str) -> bool:
     msg = (msg or "").lower()
     return any(
         s in msg
@@ -47,33 +65,57 @@ def _is_llm_down(msg: str) -> bool:
             "timeout",
             "failed to establish a new connection",
             "max retries exceeded",
-            "name or service not known",
-            "temporary failure in name resolution",
+            "service unavailable",
+            "502",
+            "503",
+            "504",
             "unauthorized",
-            "invalid api key",
-            "api key",
             "forbidden",
+            "api key",
+            "invalid_api_key",
+            "authentication",
+            "permission",
             "rate limit",
-            "429",
+            "quota",
         ]
     )
 
 
-def _get_groq_model() -> str:
-    return os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
-
-
 def _get_agent() -> PlannerAgent:
+    """
+    Build the PlannerAgent using the configured provider.
+
+    ✅ Default: Groq (hosted) for Azure.
+    ❌ Ollama is intentionally unsupported in Azure.
+    """
     global _AGENT
-    if _AGENT is None:
-        api_key = os.getenv("GROQ_API_KEY", "").strip()
-        if not api_key:
-            raise RuntimeError(
-                "Missing GROQ_API_KEY. Set it as an environment variable in the API app."
-            )
-        model = _get_groq_model()
-        groq = GroqClient(api_key=api_key, model=model)
-        _AGENT = PlannerAgent(client=groq)
+    if _AGENT is not None:
+        return _AGENT
+
+    provider = _llm_provider()
+    if provider != "groq":
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Invalid LLM_PROVIDER='{provider}'. Azure deployment must use Groq. "
+                "Set LLM_PROVIDER=groq in Azure App Settings."
+            ),
+        )
+
+    groq_api_key = _get_env("GROQ_API_KEY")
+    groq_model = _get_env("GROQ_MODEL", "llama-3.1-8b-instant")
+
+    if not groq_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "GROQ_API_KEY is missing in environment variables. "
+                "Add GROQ_API_KEY in Azure App Settings and restart the Web App."
+            ),
+        )
+
+    client = GroqClient(api_key=groq_api_key, model=groq_model)
+    _AGENT = PlannerAgent(client=client)
     return _AGENT
 
 
@@ -86,11 +128,11 @@ def _resolve_plan_from_scaffold_payload(
     - Else if payload.idea provided, call agent.plan()
     - Else 422
     """
-    agent = _get_agent()
-
     if payload.plan is not None:
         return payload.plan
+
     if payload.idea is not None:
+        agent = _get_agent()
         return agent.plan(_as_dict(payload.idea))
 
     raise HTTPException(
@@ -116,14 +158,15 @@ def agent_plan(idea: ProjectIdeaInput) -> AgentArchitecturePlan:
     try:
         agent = _get_agent()
         return agent.plan(_as_dict(idea))
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_llm_down(str(e)):
-            model = _get_groq_model()
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
-                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -134,8 +177,8 @@ def diagram_from_idea(payload: DiagramPipelineRequest) -> DiagramPipelineRespons
     """Milestone 3: idea -> agent-plan -> mermaid."""
     try:
         agent = _get_agent()
-
         plan = agent.plan(_as_dict(payload.idea))
+
         mermaid = build_mermaid(
             plan=plan,
             diagram_type=payload.diagram_type,
@@ -149,14 +192,16 @@ def diagram_from_idea(payload: DiagramPipelineRequest) -> DiagramPipelineRespons
             plan=plan,
             render_url=None,
         )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_llm_down(str(e)):
-            model = _get_groq_model()
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
-                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -181,14 +226,16 @@ def scaffold_repo(payload: ScaffoldRequest) -> ScaffoldResponse:
             files=files,
             plan=plan,
         )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_llm_down(str(e)):
-            model = _get_groq_model()
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
-                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))
@@ -216,14 +263,15 @@ def scaffold_repo_zip(payload: ScaffoldRequest) -> Response:
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        if _is_llm_down(str(e)):
-            model = _get_groq_model()
+        if _is_provider_down(str(e)):
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    f"Groq LLM is not reachable/authorized. Tried model={model}. "
-                    "Confirm GROQ_API_KEY is set and valid, and that you are not rate-limited."
+                    "LLM provider is not reachable or not authorized. "
+                    "Verify GROQ_API_KEY and GROQ_MODEL in Azure App Settings."
                 ),
             )
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,12 +1,17 @@
+# app/main.py
+
 from fastapi import FastAPI
 
 from app.api.architect import router as architect_router
+from app.api.ml import router as ml_router  # ✅ ADD THIS
 
 app = FastAPI(
     title="AI Architecture Designer ML",
 )
 
+# ✅ Include routers
 app.include_router(architect_router)
+app.include_router(ml_router)  # ✅ ADD THIS
 
 
 @app.get("/")

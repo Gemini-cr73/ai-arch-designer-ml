@@ -1,6 +1,8 @@
+# app/core/schemas/scaffold.py
+
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.core.schemas.agent_plan import AgentArchitecturePlan
 from app.core.schemas.inputs import ProjectIdeaInput
@@ -13,10 +15,12 @@ class ScaffoldRequest(BaseModel):
     """
 
     idea: ProjectIdeaInput | None = Field(
-        default=None, description="Optional: project idea input (will call agent-plan)"
+        default=None,
+        description="Optional: project idea input (will call agent-plan if plan is not provided).",
     )
     plan: AgentArchitecturePlan | None = Field(
-        default=None, description="Optional: existing agent architecture plan"
+        default=None,
+        description="Optional: existing agent architecture plan.",
     )
 
     project_slug: str = Field(
@@ -25,11 +29,17 @@ class ScaffoldRequest(BaseModel):
     )
 
     include_docker: bool = Field(
-        default=True, description="Include Dockerfile + compose"
+        default=True, description="Include Dockerfile + compose."
     )
     include_github_actions: bool = Field(
-        default=False, description="Include CI skeleton"
+        default=False, description="Include CI skeleton."
     )
+
+    @model_validator(mode="after")
+    def validate_idea_or_plan(self):
+        if self.idea is None and self.plan is None:
+            raise ValueError("Provide either 'idea' or 'plan' in the request body.")
+        return self
 
 
 class RepoFile(BaseModel):

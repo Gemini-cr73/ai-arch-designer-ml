@@ -1,3 +1,5 @@
+# app/services/diagrams/mermaid_builder.py
+
 from __future__ import annotations
 
 from typing import Literal
@@ -17,7 +19,7 @@ def build_mermaid(
 
 def _sanitize_id(s: str) -> str:
     # Mermaid node IDs: safest is letters/numbers/underscore only
-    out = []
+    out: list[str] = []
     for ch in s or "":
         out.append(ch if ch.isalnum() else "_")
     cleaned = "".join(out).strip("_")
@@ -45,22 +47,17 @@ def _component_diagram(plan: AgentArchitecturePlan, title: str | None = None) ->
     if title:
         lines.append(f"%% {_escape_label(title)}")
 
-    comps = list(plan.components or [])
+    comps = list(getattr(plan, "components", []) or [])
     if not comps:
         return "flowchart TB\nA[No components]\n"
 
     names = [c.name for c in comps]
     node_ids = _make_unique_ids(names)
 
-    # Build name->id mapping in order
-    name_to_id: dict[str, str] = {}
-    for idx, c in enumerate(comps):
-        name_to_id[c.name] = node_ids[idx]
-
     # Nodes
     for idx, c in enumerate(comps):
         nid = node_ids[idx]
-        tech = ", ".join(c.technologies or [])
+        tech = ", ".join(getattr(c, "technologies", []) or [])
         label_parts = [c.name]
         if getattr(c, "role", None):
             label_parts.append(c.role)
@@ -86,7 +83,7 @@ def _flow_diagram(plan: AgentArchitecturePlan, title: str | None = None) -> str:
     if title:
         lines.append(f"%% {_escape_label(title)}")
 
-    comps = list(plan.components or [])
+    comps = list(getattr(plan, "components", []) or [])
     if not comps:
         return "flowchart LR\nA[No components]\n"
 
@@ -99,15 +96,12 @@ def _flow_diagram(plan: AgentArchitecturePlan, title: str | None = None) -> str:
             score += 2
         return score
 
-    entry = max(comps, key=lambda c: score_entry(c.name))
+    entry = max(comps, key=lambda c: score_entry(getattr(c, "name", "")))
 
     names = [c.name for c in comps]
     node_ids = _make_unique_ids(names)
 
-    name_to_id: dict[str, str] = {}
-    for i, name in enumerate(names):
-        name_to_id[name] = node_ids[i]
-
+    name_to_id: dict[str, str] = {names[i]: node_ids[i] for i in range(len(names))}
     entry_id = name_to_id.get(entry.name, _sanitize_id(entry.name))
 
     # Nodes

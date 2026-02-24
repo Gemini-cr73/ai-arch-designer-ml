@@ -1,3 +1,5 @@
+# app/services/llm/groq_client.py
+
 from __future__ import annotations
 
 from groq import Groq
@@ -10,8 +12,8 @@ class GroqClient:
       chat(system: str, user: str, timeout: int = 60) -> str
 
     Notes:
-    - The Groq SDK does not expose a requests-style timeout parameter the same way.
-      We keep `timeout` only for compatibility with the rest of the codebase.
+    - `timeout` is kept only for compatibility. Groq SDK does not expose
+      a requests-style timeout parameter directly.
     """
 
     def __init__(self, api_key: str, model: str = "llama-3.1-8b-instant") -> None:
@@ -19,8 +21,12 @@ class GroqClient:
         if not api_key:
             raise ValueError("GroqClient: api_key is missing or empty.")
 
+        model = (model or "llama-3.1-8b-instant").strip()
+        if not model:
+            raise ValueError("GroqClient: model name is empty.")
+
         self.client = Groq(api_key=api_key)
-        self.model = (model or "llama-3.1-8b-instant").strip()
+        self.model = model
 
     def chat(
         self,
@@ -47,10 +53,9 @@ class GroqClient:
                 max_tokens=max_tokens,
             )
         except Exception as e:
-            # Re-raise as RuntimeError so the API layer can map it to 503 cleanly.
-            raise RuntimeError(f"Groq request failed: {e}") from e
+            # Important: raise RuntimeError so API layer maps to 503
+            raise RuntimeError(f"Groq request failed: {str(e)}") from e
 
-        # Defensive parsing
         choices = getattr(resp, "choices", None)
         if not choices:
             raise RuntimeError("Groq returned no choices in the response.")

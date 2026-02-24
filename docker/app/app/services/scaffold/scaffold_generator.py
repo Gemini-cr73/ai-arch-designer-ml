@@ -1,14 +1,16 @@
+# app/services/scaffold/scaffold_generator.py
+
 from __future__ import annotations
 
 import re
 
-from app.core.schemas.agent_plan import AgentArchitecturePlan
+from app.core_schemas.agent_plan import AgentArchitecturePlan
 from app.services.scaffold import templates
 
 _SLUG_RE = re.compile(r"[^a-zA-Z0-9_]+")
 
 
-def _normalize_slug(slug: str) -> str:
+def _normalize_slug(slug: str | None) -> str:
     """
     Normalizes a repo slug to: letters/numbers/underscore only.
     Also blocks path separators to prevent traversal.
@@ -50,7 +52,7 @@ def _folders_from_paths(paths: list[str]) -> list[str]:
 
 def generate_repo_scaffold(
     plan: AgentArchitecturePlan,
-    project_slug: str,
+    project_slug: str | None,
     include_docker: bool = True,
     include_github_actions: bool = False,
 ) -> tuple[list[str], dict[str, str]]:

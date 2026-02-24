@@ -1,3 +1,5 @@
+# app/services/planner/planner_service.py
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,7 +15,10 @@ class ArchitecturePlanner:
     """
     Loads trained ML artifacts and uses them to predict an architecture pattern,
     then converts that pattern into a concrete ArchitecturePlan response.
-    Also returns Milestone 6 ML metrics: pattern_label + confidence (0..1).
+
+    Also returns ML metadata:
+    - pattern_label (string)
+    - confidence (0..1) if available
     """
 
     def __init__(
@@ -23,8 +28,8 @@ class ArchitecturePlanner:
     ) -> None:
         self.model_path = Path(model_path)
         self.encoder_path = Path(encoder_path)
-        self._model = None
-        self._encoder = None
+        self._model: Any | None = None
+        self._encoder: Any | None = None
 
     def _load_artifacts(self) -> None:
         if self._model is not None and self._encoder is not None:
@@ -45,27 +50,61 @@ class ArchitecturePlanner:
         self._model = joblib.load(self.model_path)
         self._encoder = joblib.load(self.encoder_path)
 
+    def _encode(self, X: pd.DataFrame):
+        """
+        Supports either:
+        - FeatureEncoder wrapper (has .transform)
+        - sklearn ColumnTransformer / Pipeline (also has .transform)
+        """
+        if self._encoder is None:
+            raise RuntimeError("Encoder not loaded.")
+        if not hasattr(self._encoder, "transform"):
+            raise RuntimeError("Loaded encoder does not implement transform().")
+        return self._encoder.transform(X)
+
+    def _predict(self, X_enc):
+        """
+        Supports either:
+        - sklearn estimator (has .predict / .predict_proba)
+        - PatternClassifier wrapper (has .predict / .predict_proba on wrapper)
+        """
+        if self._model is None:
+            raise RuntimeError("Model not loaded.")
+        if not hasattr(self._model, "predict"):
+            raise RuntimeError("Loaded model does not implement predict().")
+        return self._model.predict(X_enc)
+
+    def _predict_proba(self, X_enc):
+        if self._model is None:
+            return None
+        if hasattr(self._model, "predict_proba"):
+            try:
+                return self._model.predict_proba(X_enc)
+            except Exception:
+                return None
+        return None
+
     def plan(self, idea: dict[str, Any]) -> ArchitecturePlan:
         """
         idea: dict version of ProjectIdeaInput.
-        Returns: ArchitecturePlan (Pydantic model) incl. ML metrics.
+        Returns: ArchitecturePlan including ML metadata.
         """
         self._load_artifacts()
 
-        # These MUST match training feature columns exactly
+        # ---- Normalize inputs ----
         raw_users = idea.get("expected_users", 100)
         try:
             users = int(raw_users) if raw_users not in (None, "") else 100
         except Exception:
             users = 100
-        if users < 1:
-            users = 1
+        users = max(users, 1)
 
         compliance = idea.get("compliance") or []
         if not isinstance(compliance, list):
             compliance = []
         compliance_count = len(compliance)
 
+        # These MUST match training.csv columns EXACTLY
         X = pd.DataFrame(
             [
                 {
@@ -78,31 +117,35 @@ class ArchitecturePlanner:
             ]
         )
 
-        X_enc = self._encoder.transform(X)
+        # ---- Encode features ----
+        X_enc = self._encode(X)
 
-        # ---- Prediction + confidence (Milestone 6) ----
-        pred = self._model.predict(X_enc)[0]
+        # ---- Prediction + confidence ----
+        pred = self._predict(X_enc)[0]
         pattern_label = str(pred)
 
         confidence: float | None = None
-        if hasattr(self._model, "predict_proba"):
+        proba = self._predict_proba(X_enc)
+        if proba is not None and len(proba) > 0:
             try:
-                proba = self._model.predict_proba(X_enc)
-                if proba is not None and len(proba) > 0:
-                    confidence = float(max(proba[0]))
+                confidence = float(max(proba[0]))
             except Exception:
                 confidence = None
 
-        # Build the plan with your existing mapping
-        plan = self._pattern_to_plan(pattern_label, idea)
+        return self._pattern_to_plan(
+            pattern=pattern_label,
+            idea=idea,
+            pattern_label=pattern_label,
+            confidence=confidence,
+        )
 
-        # Inject ML metrics
-        plan.pattern_label = pattern_label
-        plan.confidence = confidence
-
-        return plan
-
-    def _pattern_to_plan(self, pattern: str, idea: dict[str, Any]) -> ArchitecturePlan:
+    def _pattern_to_plan(
+        self,
+        pattern: str,
+        idea: dict[str, Any],
+        pattern_label: str | None = None,
+        confidence: float | None = None,
+    ) -> ArchitecturePlan:
         domain = (idea.get("domain") or "other").strip()
         scale = (idea.get("scale") or "prototype").strip()
         budget = (idea.get("budget") or "low").strip()
@@ -265,9 +308,9 @@ class ArchitecturePlanner:
         risks.append(f"Context: domain={domain}, scale={scale}, budget={budget}")
 
         return ArchitecturePlan(
-            pattern=pattern,  # keep existing behavior
-            pattern_label=None,  # injected later in plan()
-            confidence=None,  # injected later in plan()
+            pattern=pattern,
+            pattern_label=pattern_label,
+            confidence=confidence,
             services=services,
             data_flows=flows,
             storage=storage,

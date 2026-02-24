@@ -1,3 +1,5 @@
+# app/core_schemas/architecture.py
+
 from pydantic import BaseModel, Field
 
 
@@ -14,17 +16,19 @@ class DataFlow(BaseModel):
 
 
 class ArchitecturePlan(BaseModel):
-    # ✅ NEW (Milestone 6 ML metrics)
+    # Core plan output
+    pattern: str = Field(
+        ..., description="Primary architecture pattern (e.g., monolith, microservices)"
+    )
+    services: list[ServiceComponent]
+    data_flows: list[DataFlow]
+    storage: list[str]
+    risks: list[str]
+
+    # ✅ ML metadata (Milestone 6)
     pattern_label: str | None = Field(
         None, description="Predicted architecture pattern label"
     )
     confidence: float | None = Field(
         None, ge=0.0, le=1.0, description="Model confidence score (0..1)"
     )
-
-    # Existing fields
-    pattern: str
-    services: list[ServiceComponent]
-    data_flows: list[DataFlow]
-    storage: list[str]
-    risks: list[str]
