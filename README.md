@@ -1,11 +1,11 @@
 # 🏗️ AI Architecture Designer (ML-First Decision Support)
 
-**An Applied Machine Learning System for Early-Stage Software Architecture Recommendation**
+**An Applied Machine Learning System for Empirical Software Architecture Decision Support**
 
-AI Architecture Designer investigates whether **supervised machine learning models** trained on **real labeled engineering datasets** can provide **empirically evaluable decision support** for early-stage software architecture design. Natural-language project descriptions are used as inputs, but the **core contribution is ML training + evaluation**, not an LLM agent.
+AI Architecture Designer investigates whether **supervised machine learning models** trained on **real labeled engineering datasets** can provide **empirically evaluable decision support** for early-stage software architecture design. Natural-language project descriptions are accepted as inputs, but the **core contribution is ML training + evaluation**, not an LLM agent.
 
 > ⚠️ This project is **ML-first**.  
-> The UI and LLM components exist **only to demonstrate ML results**, not to replace them.
+> The UI and LLM components exist **only to present ML results**, not to replace them.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge" />
@@ -37,20 +37,22 @@ Modern systems introduce additional complexity through:
 
 This project explores whether **supervised machine learning** can provide **consistent, measurable, and reproducible decision support** for these early design choices.
 
-## 📂 Datasets (Professor Requirement)
+## 📂 Datasets (Professor Requirement: Used Independently)
 
-This project uses **real labeled datasets** so that models can be **trained and evaluated empirically** (train/validation/test splits). The system is not an “LLM-only” project.
+This project uses **real labeled datasets** so that models can be **trained and evaluated empirically** (train/validation/test splits).  
+**Important:** Per professor requirement, these datasets are **NOT merged** and are **not assumed to share identical features or targets**.  
+Each dataset defines its **own supervised task**, and algorithms are compared **within-dataset only**. Cross-dataset analysis is treated as a **robustness/generalization study**.
 
 - **NASA PROMISE Software Defect Dataset (MW1)**  
   Software module metrics (e.g., McCabe/Halstead-style metrics) with **defect labels** used for supervised learning evaluation.  
   Source: https://openscience.us/repo/defect/mccabehalsted/mw1.html
 
 - **Google Cluster Workload Traces (Google Cluster Data)**  
-  Large-scale workload traces (resource usage / scheduling behavior) used to derive **system behavior and complexity signals**.  
+  Large-scale workload traces (resource usage / scheduling behavior) used to derive **system behavior and complexity signals** for a dataset-specific supervised task.  
   Source: https://github.com/google/cluster-data
 
 - **NASA Benchmark Defect Dataset Collection (Mendeley)**  
-  Multi-dataset benchmark collection for **robustness testing and cross-dataset validation**.  
+  Multi-dataset benchmark collection used for **robustness testing and cross-dataset evaluation** (without merging).  
   Source: https://data.mendeley.com/datasets/923xvkk5mm/1
 
 > Dataset usage is documented under `data/` (raw/processed) and experiment scripts produce reproducible artifacts.
@@ -60,14 +62,15 @@ This project uses **real labeled datasets** so that models can be **trained and 
 This project addresses the following applied ML questions:
 
 - Can supervised ML models learn architecture decision signals using labeled engineering datasets?
-- Can regression models estimate relative deployment or system complexity from derived system metrics?
+- How do non-linear models compare to interpretable baselines within each dataset?
+- How robust are model behaviors under cross-dataset evaluation (generalization study)?
 - How do learned ML models compare against explicit **baseline methods**?
 
 The emphasis is on **evaluation, comparison, and interpretability**, consistent with graduate-level applied ML expectations.
 
 ## 🧠 Machine Learning Contributions (Core)
 
-### Algorithms Evaluated
+### Algorithms Evaluated (Within Each Dataset)
 
 | Algorithm | Purpose |
 |---------|--------|
@@ -75,39 +78,39 @@ The emphasis is on **evaluation, comparison, and interpretability**, consistent 
 | Random Forest | Non-linear ensemble |
 | Support Vector Machine (SVM) | High-dimensional feature modeling |
 
-Multiple algorithms are required to:
+Multiple algorithms are used to:
 - establish baselines
 - justify performance claims
 - meet empirical ML standards
 
 ## 📊 Learning Tasks & Metrics
 
+The project supports dataset-specific supervised tasks. Current emphasis is on **classification evaluation**; additional tasks may be added as extensions.
+
 | Task | Model Type | Metrics |
 |----|----------|--------|
-| Architecture Pattern Classification | Classification | Accuracy, Precision, Recall, F1, ROC-AUC |
-| Component Recommendation | Ranking / Multi-Label | Precision@K, Recall@K |
-| Deployment Complexity Estimation | Regression | RMSE, R² |
+| Defect / Label Prediction (per dataset) | Classification | Accuracy, Precision, Recall, F1, ROC-AUC |
 | Baseline Comparison | Control Models | Relative performance |
 
-All models use **train / validation / test splits**.
+All models use **train / validation / test splits** and consistent evaluation protocols.
 
 ## 🧩 Feature Engineering
 
 Features are derived from:
-- natural-language project descriptions (vectorized text)
 - encoded system attributes (scale, data intensity, cloud usage)
 - structured metadata indicators
 - dataset-driven engineering metrics (software metrics and workload signals)
+- vectorized text fields (where applicable)
 
 Baseline feature pipelines are implemented for comparison.
 
 ## 📈 Experimental Evaluation
 
 Evaluation artifacts include:
-- ACM-style result tables
 - confusion matrices
-- regression error analysis
+- ROC curves
 - baseline vs ML model comparisons
+- summary tables of metrics across algorithms
 
 All experiments are **reproducible** using scripts in this repository.
 
@@ -118,6 +121,7 @@ A hosted LLM via the **Groq API** is used **only after ML inference**.
 ### The LLM is NOT used for:
 - learning
 - prediction
+- model training
 - evaluation
 - optimization
 
@@ -135,10 +139,10 @@ The LLM can be removed without affecting ML results.
 1. User submits a project description  
 2. Feature extraction pipeline processes input  
 3. ML models generate predictions and confidence scores  
-4. Optional planner formats results  
+4. Optional planner formats results (LLM post-processing only)  
 5. Outputs are displayed via API and UI  
 
-### 📐 Production Architecture Diagram
+## 📐 Production Architecture Diagram
 
 ![Production Architecture](docs/screenshots/architecture-prod.png)
 
@@ -150,13 +154,13 @@ The LLM can be removed without affecting ML results.
 
 ![Streamlit UI](docs/screenshots/ui-dashboard.png)
 
+### Streamlit UI — Continued View
+
+![Streamlit UI Continued](docs/screenshots/ui-dashboard-continues.png)
+
 ### FastAPI — Swagger Documentation
 
 ![API Docs](docs/screenshots/api-docs.png)
-
-### End-to-End Demo Walkthrough
-
-![Demo Walkthrough](docs/screenshots/demo.gif)
 
 ## 🗂️ Repository Structure (Course-Relevant)
 
