@@ -1,15 +1,20 @@
-import base64
+# ui/streamlit_app.py
+
+from __future__ import annotations
+
+import html
 import json
 import os
-import re
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
-# =========================================================
-# Page Config (MUST be first Streamlit call)
-# =========================================================
+# -----------------------------
+# Page config (must be first)
+# -----------------------------
 st.set_page_config(
     page_title="AI Architecture Designer",
     page_icon="🧠",
@@ -17,44 +22,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# =========================================================
-# Sidebar Toggle (Hide / Show Controls)
-# =========================================================
-if "sidebar_hidden" not in st.session_state:
-    st.session_state.sidebar_hidden = False
+DEFAULT_TIMEOUT = 120
 
 
-def _toggle_sidebar():
-    st.session_state.sidebar_hidden = not st.session_state.sidebar_hidden
-
-
-top_left, _ = st.columns([1, 9])
-with top_left:
-    st.button(
-        "☰ Controls" if st.session_state.sidebar_hidden else "✖ Hide",
-        on_click=_toggle_sidebar,
-        use_container_width=True,
-    )
-
-if st.session_state.sidebar_hidden:
-    st.markdown(
-        """
-        <style>
-          [data-testid="stSidebar"] { display: none !important; }
-          [data-testid="stAppViewContainer"] .main .block-container {
-              padding-left: 2rem;
-              padding-right: 2rem;
-              max-width: 100% !important;
-          }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# =========================================================
+# -----------------------------
 # Config helpers
-# =========================================================
+# -----------------------------
 def _get_secret(key: str) -> str | None:
     try:
         if key in st.secrets:
@@ -65,320 +38,496 @@ def _get_secret(key: str) -> str | None:
     return None
 
 
-def get_api_public_url() -> str:
-    """
-    URL shown to the user (sidebar).
-    Prefer API_PUBLIC_URL if set.
-    """
-    v = os.getenv("API_PUBLIC_URL") or _get_secret("API_PUBLIC_URL")
-    if v:
-        return v.rstrip("/")
-    v2 = os.getenv("API_BASE_URL") or _get_secret("API_BASE_URL")
-    return (v2 or "http://localhost:8000").rstrip("/")
-
-
-def get_api_internal_url() -> str:
-    """
-    URL used by Streamlit server-side to call the API.
-    In docker-compose: http://api:8000
-    In Azure: https://arch-api.ai-coach-lab.com
-    """
+def _default_api_base_url() -> str:
     v = os.getenv("API_BASE_URL") or _get_secret("API_BASE_URL")
-    return (v or "http://localhost:8000").rstrip("/")
+    return (v or "http://127.0.0.1:8000").rstrip("/")
 
 
-API_PUBLIC_URL = get_api_public_url()
-API_INTERNAL_URL = get_api_internal_url()
-
-PREVIEW_ENDPOINT = f"{API_INTERNAL_URL}/architect/preview"
-AGENT_PLAN_ENDPOINT = f"{API_INTERNAL_URL}/architect/agent-plan"
-DIAGRAM_ENDPOINT = f"{API_INTERNAL_URL}/architect/diagram-from-idea"
-SCAFFOLD_ENDPOINT = f"{API_INTERNAL_URL}/architect/scaffold"
-ZIP_ENDPOINT = f"{API_INTERNAL_URL}/architect/scaffold/zip"
-
-DEFAULT_TIMEOUT = 90  # Groq calls can take longer than local Ollama sometimes
+# Allow override via UI (useful when you move ports from 8000 -> 8001, etc.)
+st.session_state.setdefault("api_base_url", _default_api_base_url())
 
 
-# =========================================================
-# API Helper
-# =========================================================
+# -----------------------------
+# UI helpers (logo + mermaid)
+# -----------------------------
+def render_logo(width: int = 56) -> None:
+    """
+    Shows logo once (top-left).
+    Looks for:
+      1) env LOGO_PATH
+      2) ui/assets/logo.png
+    """
+    logo_path = (
+        os.getenv("LOGO_PATH") or _get_secret("LOGO_PATH") or "ui/assets/logo.png"
+    )
+    p = Path(logo_path)
+    if p.exists():
+        st.image(str(p), width=width)
+    else:
+        st.markdown("### 🧠")  # fallback
+
+
+def render_mermaid_interactive(mermaid_code: str, height: int = 520) -> None:
+    """
+    Render Mermaid code interactively inside Streamlit using MermaidJS.
+    """
+    if not mermaid_code or not mermaid_code.strip():
+        st.info("No Mermaid diagram to render yet.")
+        return
+
+    safe_code = html.escape(mermaid_code.strip())
+
+    html_doc = f"""
+    <div class="mermaid">
+    {safe_code}
+    </div>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({{
+        startOnLoad: true,
+        theme: "dark",
+        securityLevel: "loose"
+      }});
+    </script>
+    """
+
+    components.html(html_doc, height=height, scrolling=True)
+
+
+# -----------------------------
+# API helpers
+# -----------------------------
 def call_api(
-    method: str, url: str, payload: dict | None = None, timeout: int = DEFAULT_TIMEOUT
-):
+    method: Literal["GET", "POST"],
+    path: str,
+    payload: dict | None = None,
+    timeout: int = DEFAULT_TIMEOUT,
+) -> dict | None:
+    base = (st.session_state.get("api_base_url") or "").rstrip("/")
+    url = f"{base}{path}"
     try:
-        if method.upper() == "POST":
+        if method == "POST":
             r = requests.post(url, json=payload, timeout=timeout)
         else:
             r = requests.get(url, timeout=timeout)
 
         if not r.ok:
-            st.error(f"API Error ({r.status_code}) — {url}")
+            st.error(f"API error {r.status_code} — {method} {path}")
             try:
                 st.code(r.json(), language="json")
             except Exception:
                 st.code(r.text)
             return None
 
-        # Some endpoints may return empty response bodies; guard
-        try:
-            return r.json()
-        except Exception:
-            st.error("API returned non-JSON response.")
-            st.code(r.text)
-            return None
+        return r.json()
 
     except requests.RequestException as e:
-        st.error(f"Network/API call failed: {e}")
+        st.error(f"Network/API call failed for {method} {path}: {e}")
         return None
 
 
-# =========================================================
-# Helpers
-# =========================================================
-def safe_json(obj: Any) -> str:
+def pretty_json(obj: Any) -> str:
     return json.dumps(obj, indent=2, ensure_ascii=False)
 
 
-def mermaid_ink_url(mermaid_code: str) -> str:
-    raw = mermaid_code.encode("utf-8")
-    b64 = base64.b64encode(raw).decode("ascii")
-    return f"https://mermaid.ink/svg/{b64}"
+# -----------------------------
+# Session State (ML-first)
+# -----------------------------
+st.session_state.setdefault("dataset_key", "nasa_promise")
+st.session_state.setdefault("features_config", {"mode": "default"})
+st.session_state.setdefault("latest_train_eval", None)
+st.session_state.setdefault("latest_diagnostics", None)
+st.session_state.setdefault("latest_llm_explain", None)
+
+# Architecture/diagram state
+st.session_state.setdefault("latest_arch_preview", None)  # /architect/preview output
+st.session_state.setdefault("latest_agent_plan", None)  # /architect/agent-plan output
+st.session_state.setdefault(
+    "latest_diagram", None
+)  # /architect/diagram-from-idea output
+st.session_state.setdefault("latest_scaffold", None)  # /architect/scaffold output
 
 
-def api_post_zip(url: str, payload: dict[str, Any]):
-    try:
-        r = requests.post(url, json=payload, timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:
-            return None, r.text
-        return r, None
-    except requests.RequestException as e:
-        return None, str(e)
-
-
-def guess_zip_filename(headers: dict[str, str]) -> str:
-    cd = headers.get("content-disposition", "") or headers.get(
-        "Content-Disposition", ""
-    )
-    m = re.search(r'filename="?([^"]+)"?', cd, flags=re.IGNORECASE)
-    return m.group(1) if m else "generated_project.zip"
-
-
-def extract_mermaid(d: dict[str, Any]) -> str | None:
-    v = d.get("mermaid")
-    return v if isinstance(v, str) and v.strip() else None
-
-
-# =========================================================
-# UI
-# =========================================================
-st.title("🧠 AI Architecture Designer")
-st.caption("Turn project ideas into architecture plans, diagrams, and repo scaffolds.")
-
-# ---------------- Sidebar ----------------
+# -----------------------------
+# Sidebar (workflow)
+# -----------------------------
 with st.sidebar:
     st.subheader("🔌 API Connection")
-    st.code(API_PUBLIC_URL)
 
-    with st.expander("Debug (internal URL)", expanded=False):
-        st.code(API_INTERNAL_URL)
+    st.session_state["api_base_url"] = st.text_input(
+        "API Base URL",
+        value=st.session_state["api_base_url"],
+        help="Example: http://127.0.0.1:8001 (use this if port 8000 is blocked).",
+    ).rstrip("/")
+
+    # Quick health indicator
+    health = call_api("GET", "/health")
+    if health:
+        st.success("API: connected ✅")
+    else:
+        st.warning("API: not reachable ❌")
+
+    with st.expander("Health check (raw)", expanded=False):
+        st.code(pretty_json(health) if health else "No response")
 
     st.divider()
+
+    st.subheader("🧭 Workflow")
+    step = st.radio(
+        "Go to",
+        [
+            "Dataset",
+            "Feature Engineering",
+            "Train & Evaluate",
+            "Compare Models",
+            "Architecture (Optional)",
+            "Export & Save Results",
+        ],
+        index=2,
+    )
+
+    st.divider()
+
     st.subheader("⚙️ Defaults")
-
-    default_language = st.selectbox(
-        "Preferred language", ["Python", "JavaScript/TypeScript", "Java", "Go"], index=0
+    st.caption("These control training + evaluation runs.")
+    test_size = st.slider("Test size", 0.1, 0.4, 0.2, 0.05)
+    random_state = st.number_input(
+        "Random state", min_value=0, max_value=9999, value=42, step=1
     )
-    default_cloud = st.selectbox(
-        "Cloud target", ["Azure", "AWS", "GCP", "Local"], index=0
-    )
-    default_scale = st.select_slider(
-        "Scale", options=["Prototype", "MVP", "Production"], value="MVP"
-    )
-
-    ui_label = st.selectbox(
-        "Diagram type", ["Flow", "Component", "Deployment"], index=0
-    )
-
-    DIAGRAM_TYPE_MAP = {
-        "Flow": "flow",
-        "Component": "component",
-        "Deployment": "flow",  # safe fallback until backend supports deployment
-    }
-    diagram_type = DIAGRAM_TYPE_MAP.get(ui_label, "flow")
 
     st.divider()
-    st.subheader("🧩 Scaffold Options")
-    include_docker = st.checkbox("Include Docker", value=True)
-    include_github_actions = st.checkbox("Include GitHub Actions", value=True)
+    st.subheader("🧪 Algorithms")
+    st.write("✅ Logistic Regression (baseline)")
+    st.write("✅ Random Forest")
+    st.write("✅ SVM")
 
-# ---------------- Main Layout ----------------
-col1, col2 = st.columns([1.1, 0.9], gap="large")
+    st.divider()
+    st.subheader("🤖 LLM (optional, post-ML only)")
+    enable_llm = st.checkbox("Enable post-ML explanation", value=False)
+    st.caption("Only affects /ml/explain. Not required for ML training/eval.")
 
-with col1:
-    st.subheader("1) Describe your project")
-    idea = st.text_area(
-        "Project idea",
-        height=150,
-        placeholder="Example: A web app that predicts churn using ML and dashboards.",
+
+# -----------------------------
+# Header (top)
+# -----------------------------
+left, right = st.columns([0.08, 0.92])
+with left:
+    render_logo()
+with right:
+    st.markdown("# AI Architecture Designer")
+    st.caption("ML-first decision support. LLM is optional and post-ML only.")
+
+
+# -----------------------------
+# Dataset Step
+# -----------------------------
+if step == "Dataset":
+    st.header("Step 1 — Dataset")
+    st.caption(
+        "Select one dataset. Each dataset is trained/evaluated independently (no merging)."
     )
 
-    st.subheader("2) Constraints & preferences")
-    project_name = st.text_input("Project name (optional)")
-    domain = st.text_input("Domain (optional)")
-    notes = st.text_area("Extra notes (optional)", height=100)
-
-    generate_btn = st.button(
-        "✨ Generate Architecture", type="primary", use_container_width=True
-    )
-
-with col2:
-    st.subheader("Status")
-    status_box = st.empty()
-    status_box.info("Ready.")
-
-    st.subheader("Outputs")
-    st.write("- ML Preview + Metrics")
-    st.write("- LLM Agent Plan")
-    st.write("- Mermaid Diagram")
-    st.write("- Scaffold ZIP")
-
-# =========================================================
-# Session State
-# =========================================================
-for k in [
-    "latest_preview",
-    "latest_plan",
-    "latest_mermaid",
-    "latest_scaffold",
-    "latest_zip_bytes",
-    "latest_zip_name",
-]:
-    st.session_state.setdefault(k, None)
-
-
-# =========================================================
-# Payload Builder
-# =========================================================
-def build_idea_payload() -> dict[str, Any]:
-    name = project_name.strip() if project_name else "Generated Project"
-    scale_map = {"Prototype": "prototype", "MVP": "startup", "Production": "enterprise"}
-    resolved_scale = scale_map.get(default_scale, "startup")
-    resolved_domain = domain.strip() if domain else "General"
-
-    description = idea.strip()
-    if notes:
-        description += f"\n\nNotes:\n{notes.strip()}"
-
-    return {
-        "name": name,
-        "description": description,
-        "domain": resolved_domain,
-        "scale": resolved_scale,
-        "expected_users": 5000,
-        "compliance": ["GDPR"],
-        "budget": "medium",
+    dataset_label_to_key = {
+        "NASA PROMISE Dataset": "nasa_promise",
+        "Google Cluster Dataset": "google_cluster",
+        "NASA Benchmark Dataset": "nasa_benchmark",
     }
 
+    selected_label = st.selectbox(
+        "Dataset",
+        list(dataset_label_to_key.keys()),
+        index=list(dataset_label_to_key.values()).index(st.session_state.dataset_key),
+    )
+    st.session_state.dataset_key = dataset_label_to_key[selected_label]
 
-# =========================================================
-# Generate Flow
-# =========================================================
-if generate_btn:
-    if not idea.strip():
-        status_box.error("Please enter a project idea.")
+    st.success("Dataset selected. Next: Feature Engineering → Train & Evaluate.")
+    st.info("Comparisons are within this dataset only.")
+
+
+# -----------------------------
+# Feature Engineering Step
+# -----------------------------
+elif step == "Feature Engineering":
+    st.header("Step 2 — Feature Engineering")
+    st.caption("Start with defaults; add dataset-specific options later.")
+
+    mode = st.selectbox("Feature mode", ["default", "standardize_numeric"], index=0)
+    st.session_state.features_config = {"mode": mode}
+
+    st.success("Feature configuration saved for the next training run.")
+
+
+# -----------------------------
+# Train & Evaluate Step
+# -----------------------------
+elif step == "Train & Evaluate":
+    st.header("Step 3 — Train & Evaluate Models")
+    st.caption(
+        "Compare supervised algorithms using the selected dataset and engineered features."
+    )
+
+    dataset_key = st.session_state.dataset_key
+    key_to_label = {
+        "nasa_promise": "NASA PROMISE Dataset",
+        "google_cluster": "Google Cluster Dataset",
+        "nasa_benchmark": "NASA Benchmark Dataset",
+    }
+
+    st.selectbox(
+        "Dataset:", [key_to_label.get(dataset_key, dataset_key)], index=0, disabled=True
+    )
+
+    colA, colB = st.columns([0.7, 0.3])
+    with colA:
+        st.write("")
+    with colB:
+        retrain = st.button("Retrain Models", use_container_width=True)
+
+    if retrain:
+        payload = {
+            "dataset": dataset_key,
+            "features": st.session_state.features_config,
+            "split": {"test_size": float(test_size), "random_state": int(random_state)},
+            "algorithms": ["logreg", "rf", "svm"],
+        }
+
+        result = call_api("POST", "/ml/train-eval", payload)
+        st.session_state.latest_train_eval = result
+
+        if result and result.get("run_id"):
+            diag = call_api("POST", "/ml/diagnostics", {"run_id": result["run_id"]})
+            st.session_state.latest_diagnostics = diag
+
+    res = st.session_state.latest_train_eval
+    if not res:
+        st.info(
+            "Click **Retrain Models** to compute LR/RF/SVM metrics and populate the cards."
+        )
         st.stop()
 
-    idea_payload = build_idea_payload()
+    metrics: dict[str, dict[str, float]] = res.get("metrics") or {}
+    best_key: str = res.get("best_model") or ""
 
-    status_box.info("ML Preview...")
-    st.session_state.latest_preview = call_api("POST", PREVIEW_ENDPOINT, idea_payload)
+    bm = metrics.get(best_key, {})
+    bm_name = {
+        "logreg": "Logistic Regression",
+        "rf": "Random Forest",
+        "svm": "SVM",
+    }.get(best_key, "—")
 
-    status_box.info("LLM Agent Plan...")
-    plan = call_api("POST", AGENT_PLAN_ENDPOINT, idea_payload)
-    if not plan:
-        status_box.error("Agent plan failed.")
-        st.stop()
-    st.session_state.latest_plan = plan
+    top1, top2 = st.columns([0.6, 0.4], gap="large")
 
-    status_box.info("Diagram...")
-    diagram_req = {
-        "idea": idea_payload,
-        "diagram_type": diagram_type,
-        "title": idea_payload["name"],
-    }
-    diagram = call_api("POST", DIAGRAM_ENDPOINT, diagram_req)
-    st.session_state.latest_mermaid = extract_mermaid(diagram) if diagram else None
+    with top2:
+        st.markdown("#### Best Model")
+        st.markdown(f"**{bm_name}**")
+        st.write(
+            f"Accuracy: {bm.get('accuracy', 0.0):.1%}"
+            if "accuracy" in bm
+            else "Accuracy: —"
+        )
+        st.write(f"F1 Score: {bm.get('f1', 0.0):.1%}" if "f1" in bm else "F1 Score: —")
+        st.write(
+            f"ROC AUC: {bm.get('roc_auc', 0.0):.1%}"
+            if "roc_auc" in bm
+            else "ROC AUC: —"
+        )
+        st.caption(f"(Trained on {key_to_label.get(dataset_key, dataset_key)})")
 
-    status_box.info("Scaffold...")
-    scaffold_req = {
-        "idea": idea_payload,
-        "plan": plan,
-        "project_slug": "generated_project",
-        "include_docker": include_docker,
-        "include_github_actions": include_github_actions,
-    }
-    st.session_state.latest_scaffold = call_api("POST", SCAFFOLD_ENDPOINT, scaffold_req)
+    with top1:
+        st.markdown("#### Model Comparison")
+        c1, c2, c3 = st.columns(3)
 
-    status_box.info("ZIP...")
-    zip_resp, zip_err = api_post_zip(ZIP_ENDPOINT, scaffold_req)
-    if zip_resp:
-        st.session_state.latest_zip_bytes = zip_resp.content
-        st.session_state.latest_zip_name = guess_zip_filename(zip_resp.headers)
-        status_box.success("✅ Done")
-    else:
-        st.error(zip_err)
+        def card(title: str, m: dict[str, float]) -> None:
+            st.markdown(f"**{title}**")
+            st.write(
+                f"Accuracy: {m.get('accuracy', 0.0):.1%}"
+                if "accuracy" in m
+                else "Accuracy: —"
+            )
+            st.write(
+                f"F1 Score: {m.get('f1', 0.0):.1%}" if "f1" in m else "F1 Score: —"
+            )
+            st.write(
+                f"ROC AUC: {m.get('roc_auc', 0.0):.1%}"
+                if "roc_auc" in m
+                else "ROC AUC: —"
+            )
 
-# =========================================================
-# Display Results
-# =========================================================
-st.divider()
+        with c1:
+            card("Logistic Regression", metrics.get("logreg", {}))
+        with c2:
+            card("Random Forest", metrics.get("rf", {}))
+        with c3:
+            card("SVM", metrics.get("svm", {}))
 
-l, r = st.columns(2)
+    st.markdown("---")
+    with st.expander("View Diagnostics", expanded=False):
+        diag = st.session_state.latest_diagnostics
+        if not diag:
+            st.info("No diagnostics yet. Retrain models to compute diagnostics.")
+        else:
+            st.subheader("Diagnostics")
+            st.caption(
+                "Confusion matrices, ROC curves, and feature importance (where applicable)."
+            )
+            st.code(pretty_json(diag), language="json")
 
-with l:
-    st.subheader("Preview (ML)")
-    if st.session_state.latest_preview:
-        st.code(safe_json(st.session_state.latest_preview), language="json")
-    else:
-        st.info("No preview yet.")
+    if enable_llm:
+        st.markdown("---")
+        st.subheader("Post-ML Explanation (Optional)")
+        st.caption("This is separate from architecture generation.")
+        if st.button("Explain these results (LLM)", use_container_width=True):
+            run_id = res.get("run_id")
+            st.session_state.latest_llm_explain = call_api(
+                "POST", "/ml/explain", {"run_id": run_id}
+            )
 
-with r:
-    st.subheader("Agent Plan (LLM)")
-    if st.session_state.latest_plan:
-        st.code(safe_json(st.session_state.latest_plan), language="json")
-    else:
-        st.info("No plan yet.")
+        if st.session_state.latest_llm_explain:
+            st.write(
+                st.session_state.latest_llm_explain.get("text", "No explanation text.")
+            )
 
-st.divider()
 
-st.subheader("Mermaid Diagram")
-if st.session_state.latest_mermaid:
-    st.components.v1.iframe(
-        mermaid_ink_url(st.session_state.latest_mermaid), height=520, scrolling=True
-    )
-else:
-    st.info("No diagram yet.")
-
-st.divider()
-
-l2, r2 = st.columns(2)
-
-with l2:
-    st.subheader("Scaffold Tree")
-    if st.session_state.latest_scaffold and "tree" in st.session_state.latest_scaffold:
-        st.code(safe_json(st.session_state.latest_scaffold["tree"]), language="json")
-    else:
-        st.info("No scaffold yet.")
-
-with r2:
-    st.subheader("Download ZIP")
-    if st.session_state.latest_zip_bytes:
-        st.download_button(
-            "Download Project ZIP",
-            data=st.session_state.latest_zip_bytes,
-            file_name=st.session_state.latest_zip_name or "project.zip",
-            mime="application/zip",
-            use_container_width=True,
+# -----------------------------
+# Compare Models Step
+# -----------------------------
+elif step == "Compare Models":
+    st.header("Step 4 — Compare Models")
+    st.caption("Richer comparison view will go here.")
+    res = st.session_state.latest_train_eval
+    if not res:
+        st.info(
+            "No training run yet. Go to **Train & Evaluate** and click Retrain Models."
         )
     else:
-        st.info("Generate architecture first.")
+        st.code(pretty_json(res), language="json")
+
+
+# -----------------------------
+# Architecture (Optional)
+# -----------------------------
+elif step == "Architecture (Optional)":
+    st.header("Architecture (Optional)")
+    st.caption(
+        "Generates architecture outputs from a project idea. "
+        "Mermaid generation uses the LLM agent (Groq), so GROQ_API_KEY must be set in the API environment."
+    )
+
+    st.subheader("Project idea")
+    project_name = st.text_input("Name", "NASA Defect Prediction Classifier")
+    project_domain = st.text_input("Domain", "ml", help="Required by backend schema.")
+
+    # ✅ FIX: backend expects scale in {"prototype","startup","enterprise"} (not small/medium/large)
+    scale_label_to_value = {
+        "Prototype (small)": "prototype",
+        "Startup (medium)": "startup",
+        "Enterprise (large)": "enterprise",
+    }
+    scale_labels = list(scale_label_to_value.keys())
+    project_scale_label = st.selectbox("Scale", scale_labels, index=1)
+    project_scale = scale_label_to_value[project_scale_label]
+
+    project_desc = st.text_area(
+        "Description",
+        "Build a supervised ML system that predicts whether a NASA software module is defective. "
+        "Compare Logistic Regression (baseline), Random Forest, and SVM; report Accuracy, F1, ROC AUC; include confusion matrix.",
+        height=120,
+    )
+    project_notes = st.text_area("Notes (optional)", "", height=80)
+
+    col1, col2, col3 = st.columns([0.34, 0.33, 0.33])
+    with col1:
+        btn_preview = st.button(
+            "Architecture Preview (ML-based)", use_container_width=True
+        )
+    with col2:
+        btn_agent = st.button("LLM Agent Plan (Groq)", use_container_width=True)
+    with col3:
+        btn_diagram = st.button("Generate Mermaid Diagram", use_container_width=True)
+
+    idea_payload = {
+        "name": (project_name or "").strip(),
+        "domain": (project_domain or "").strip(),
+        "scale": (project_scale or "").strip(),  # ✅ now API-valid
+        "description": (project_desc or "").strip(),
+        "notes": (project_notes or "").strip(),
+    }
+
+    if (btn_preview or btn_agent or btn_diagram) and (
+        not idea_payload["name"] or not idea_payload["domain"]
+    ):
+        st.error("Name and Domain are required.")
+        st.stop()
+
+    if btn_preview:
+        st.session_state.latest_arch_preview = call_api(
+            "POST", "/architect/preview", idea_payload
+        )
+
+    if btn_agent:
+        st.session_state.latest_agent_plan = call_api(
+            "POST", "/architect/agent-plan", idea_payload
+        )
+
+    if btn_diagram:
+        diagram_payload = {
+            "diagram_type": "flow",
+            "title": idea_payload["name"] or "Architecture Diagram",
+            "idea": idea_payload,
+        }
+        st.session_state.latest_diagram = call_api(
+            "POST", "/architect/diagram-from-idea", diagram_payload
+        )
+
+    st.markdown("---")
+
+    with st.expander("Architecture Preview (ML-based)", expanded=True):
+        if st.session_state.latest_arch_preview:
+            st.code(pretty_json(st.session_state.latest_arch_preview), language="json")
+        else:
+            st.caption("No preview yet.")
+
+    with st.expander("LLM Agent Plan (Groq)", expanded=False):
+        if st.session_state.latest_agent_plan:
+            st.code(pretty_json(st.session_state.latest_agent_plan), language="json")
+        else:
+            st.caption("No agent plan yet.")
+
+    with st.expander("Mermaid Diagram (Interactive)", expanded=True):
+        diagram = st.session_state.latest_diagram or {}
+        mermaid = diagram.get("mermaid") if isinstance(diagram, dict) else None
+        if mermaid:
+            render_mermaid_interactive(mermaid, height=560)
+            with st.expander("Mermaid source", expanded=False):
+                st.code(mermaid, language="text")
+        else:
+            st.caption(
+                "No Mermaid diagram yet. Click **Generate Mermaid Diagram** above."
+            )
+
+
+# -----------------------------
+# Export Step
+# -----------------------------
+elif step == "Export & Save Results":
+    st.header("Export & Save Results")
+    st.caption("Export metrics + artifacts for reporting and reproducibility.")
+
+    res = st.session_state.latest_train_eval
+    diag = st.session_state.latest_diagnostics
+
+    if not res:
+        st.info("Nothing to export yet. Run Train & Evaluate first.")
+        st.stop()
+
+    st.subheader("Latest Run (JSON)")
+    st.code(pretty_json(res), language="json")
+
+    if diag:
+        st.subheader("Latest Diagnostics (JSON)")
+        st.code(pretty_json(diag), language="json")
+
+    st.info(
+        "Next: add an API endpoint to download a results bundle (JSON + plots) as a ZIP."
+    )
