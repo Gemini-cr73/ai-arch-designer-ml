@@ -1,3 +1,5 @@
+# app/ml/training/train_pattern.py
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,23 +20,36 @@ ENCODER_OUT = Path("artifacts/models/pattern_encoder.joblib")
 
 def main() -> None:
     if not DATA.exists():
-        raise FileNotFoundError(f"Dataset not found at: {DATA.resolve()}")
+        raise FileNotFoundError(
+            f"Dataset not found at: {DATA.resolve()}\n"
+            "Run: python -m app.ml.datasets.build_dataset"
+        )
 
     df = pd.read_csv(DATA)
 
-    # Use the features you already generate in training.csv
     feature_cols = ["domain", "scale", "budget", "users", "compliance_count"]
+    target_col = "pattern"
 
-    missing = [c for c in feature_cols + ["pattern"] if c not in df.columns]
+    missing = [c for c in feature_cols + [target_col] if c not in df.columns]
     if missing:
         raise ValueError(f"Missing columns in training.csv: {missing}")
 
+    # Make sure numeric fields are numeric (robustness)
+    df["users"] = pd.to_numeric(df["users"], errors="coerce").fillna(100).astype(int)
+    df["compliance_count"] = (
+        pd.to_numeric(df["compliance_count"], errors="coerce").fillna(0).astype(int)
+    )
+
     X = df[feature_cols]
-    y = df["pattern"]
+    y = df[target_col].astype(str)
 
     # Split BEFORE fitting encoder to avoid leakage
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.20, random_state=42, stratify=y
+        X,
+        y,
+        test_size=0.20,
+        random_state=42,
+        stratify=y if y.nunique() > 1 else None,
     )
 
     encoder = FeatureEncoder()
@@ -53,11 +68,13 @@ def main() -> None:
 
     # Save model + encoder (needed for inference later)
     MODEL_OUT.parent.mkdir(parents=True, exist_ok=True)
+    ENCODER_OUT.parent.mkdir(parents=True, exist_ok=True)
+
     model.save(str(MODEL_OUT))
     joblib.dump(encoder, ENCODER_OUT)
 
-    print(f"\n✅ Saved model:   {MODEL_OUT}")
-    print(f"✅ Saved encoder: {ENCODER_OUT}")
+    print(f"\n✅ Saved model:   {MODEL_OUT.resolve()}")
+    print(f"✅ Saved encoder: {ENCODER_OUT.resolve()}")
 
 
 if __name__ == "__main__":

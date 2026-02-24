@@ -1,13 +1,20 @@
-from pydantic import BaseModel
-from typing import List
+# app/ml/datasets/schema.py
+
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
 
 
 class ArchitectureTrainingSample(BaseModel):
     domain: str
     scale: str
-    users: int
-    compliance: int
-    budget: int
+    budget: str
+    users: int = Field(..., ge=1)
+    compliance_count: int = Field(..., ge=0)
+
     pattern: str
-    components: List[str]
-    risk_score: float
+
+    # Stored as CSV string in training.csv (e.g., "api,db,queue")
+    components: str = ""
+
+    risk_score: float = Field(..., ge=0.0, le=0.99)
