@@ -142,7 +142,7 @@ The LLM can be removed without affecting ML results.
 4. Optional planner formats results (LLM post-processing only)  
 5. Outputs are displayed via API and UI  
 
-## 📐 Production Architecture Diagram
+### 📐 Production Architecture Diagram
 
 ![Production Architecture](docs/screenshots/architecture-prod-v2.png)
 
@@ -156,7 +156,7 @@ The LLM can be removed without affecting ML results.
 
 ### Streamlit UI — Continued View
 
-![Streamlit UI Continued](docs/screenshots/ui-dashboard-continues-v2.png)
+![Streamlit UI (Continued)](docs/screenshots/ui-dashboard-continues-v2.png)
 
 ### FastAPI — Swagger Documentation
 
