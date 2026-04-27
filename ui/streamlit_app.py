@@ -22,7 +22,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-DEFAULT_TIMEOUT = 120
+DEFAULT_TIMEOUT = 60
 
 
 # -----------------------------
@@ -43,20 +43,14 @@ def _default_api_base_url() -> str:
     return (v or "http://127.0.0.1:8000").rstrip("/")
 
 
-# Allow override via UI (useful when you move ports from 8000 -> 8001, etc.)
+# Allow override via UI
 st.session_state.setdefault("api_base_url", _default_api_base_url())
 
 
 # -----------------------------
-# UI helpers (logo + mermaid)
+# UI helpers
 # -----------------------------
 def render_logo(width: int = 56) -> None:
-    """
-    Shows logo once (top-left).
-    Looks for:
-      1) env LOGO_PATH
-      2) ui/assets/logo.png
-    """
     logo_path = (
         os.getenv("LOGO_PATH") or _get_secret("LOGO_PATH") or "ui/assets/logo.png"
     )
@@ -64,13 +58,10 @@ def render_logo(width: int = 56) -> None:
     if p.exists():
         st.image(str(p), width=width)
     else:
-        st.markdown("### 🧠")  # fallback
+        st.markdown("### 🧠")
 
 
 def render_mermaid_interactive(mermaid_code: str, height: int = 520) -> None:
-    """
-    Render Mermaid code interactively inside Streamlit using MermaidJS.
-    """
     if not mermaid_code or not mermaid_code.strip():
         st.info("No Mermaid diagram to render yet.")
         return
@@ -106,6 +97,7 @@ def call_api(
 ) -> dict | None:
     base = (st.session_state.get("api_base_url") or "").rstrip("/")
     url = f"{base}{path}"
+
     try:
         if method == "POST":
             r = requests.post(url, json=payload, timeout=timeout)
@@ -132,7 +124,7 @@ def pretty_json(obj: Any) -> str:
 
 
 # -----------------------------
-# Session State (ML-first)
+# Session State
 # -----------------------------
 st.session_state.setdefault("dataset_key", "nasa_promise")
 st.session_state.setdefault("features_config", {"mode": "default"})
@@ -140,17 +132,14 @@ st.session_state.setdefault("latest_train_eval", None)
 st.session_state.setdefault("latest_diagnostics", None)
 st.session_state.setdefault("latest_llm_explain", None)
 
-# Architecture/diagram state
-st.session_state.setdefault("latest_arch_preview", None)  # /architect/preview output
-st.session_state.setdefault("latest_agent_plan", None)  # /architect/agent-plan output
-st.session_state.setdefault(
-    "latest_diagram", None
-)  # /architect/diagram-from-idea output
-st.session_state.setdefault("latest_scaffold", None)  # /architect/scaffold output
+st.session_state.setdefault("latest_arch_preview", None)
+st.session_state.setdefault("latest_agent_plan", None)
+st.session_state.setdefault("latest_diagram", None)
+st.session_state.setdefault("latest_scaffold", None)
 
 
 # -----------------------------
-# Sidebar (workflow)
+# Sidebar
 # -----------------------------
 with st.sidebar:
     st.subheader("🔌 API Connection")
@@ -158,11 +147,13 @@ with st.sidebar:
     st.session_state["api_base_url"] = st.text_input(
         "API Base URL",
         value=st.session_state["api_base_url"],
-        help="Example: http://127.0.0.1:8001 (use this if port 8000 is blocked).",
+        help="Example: http://127.0.0.1:8001",
     ).rstrip("/")
 
-    # Quick health indicator
-    health = call_api("GET", "/health")
+    health = (
+        call_api("GET", "/health") if st.session_state.get("api_base_url") else None
+    )
+
     if health:
         st.success("API: connected ✅")
     else:
@@ -197,23 +188,27 @@ with st.sidebar:
     )
 
     st.divider()
+
     st.subheader("🧪 Algorithms")
     st.write("✅ Logistic Regression (baseline)")
     st.write("✅ Random Forest")
     st.write("✅ SVM")
 
     st.divider()
+
     st.subheader("🤖 LLM (optional, post-ML only)")
     enable_llm = st.checkbox("Enable post-ML explanation", value=False)
     st.caption("Only affects /ml/explain. Not required for ML training/eval.")
 
 
 # -----------------------------
-# Header (top)
+# Header
 # -----------------------------
 left, right = st.columns([0.08, 0.92])
+
 with left:
     render_logo()
+
 with right:
     st.markdown("# AI Architecture Designer")
     st.caption("ML-first decision support. LLM is optional and post-ML only.")
@@ -224,9 +219,7 @@ with right:
 # -----------------------------
 if step == "Dataset":
     st.header("Step 1 — Dataset")
-    st.caption(
-        "Select one dataset. Each dataset is trained/evaluated independently (no merging)."
-    )
+    st.caption("Select one dataset. Each dataset is trained/evaluated independently.")
 
     dataset_label_to_key = {
         "NASA PROMISE Dataset": "nasa_promise",
@@ -239,6 +232,7 @@ if step == "Dataset":
         list(dataset_label_to_key.keys()),
         index=list(dataset_label_to_key.values()).index(st.session_state.dataset_key),
     )
+
     st.session_state.dataset_key = dataset_label_to_key[selected_label]
 
     st.success("Dataset selected. Next: Feature Engineering → Train & Evaluate.")
@@ -268,6 +262,7 @@ elif step == "Train & Evaluate":
     )
 
     dataset_key = st.session_state.dataset_key
+
     key_to_label = {
         "nasa_promise": "NASA PROMISE Dataset",
         "google_cluster": "Google Cluster Dataset",
@@ -275,12 +270,17 @@ elif step == "Train & Evaluate":
     }
 
     st.selectbox(
-        "Dataset:", [key_to_label.get(dataset_key, dataset_key)], index=0, disabled=True
+        "Dataset:",
+        [key_to_label.get(dataset_key, dataset_key)],
+        index=0,
+        disabled=True,
     )
 
     colA, colB = st.columns([0.7, 0.3])
+
     with colA:
         st.write("")
+
     with colB:
         retrain = st.button("Retrain Models", use_container_width=True)
 
@@ -288,7 +288,10 @@ elif step == "Train & Evaluate":
         payload = {
             "dataset": dataset_key,
             "features": st.session_state.features_config,
-            "split": {"test_size": float(test_size), "random_state": int(random_state)},
+            "split": {
+                "test_size": float(test_size),
+                "random_state": int(random_state),
+            },
             "algorithms": ["logreg", "rf", "svm"],
         }
 
@@ -300,6 +303,7 @@ elif step == "Train & Evaluate":
             st.session_state.latest_diagnostics = diag
 
     res = st.session_state.latest_train_eval
+
     if not res:
         st.info(
             "Click **Retrain Models** to compute LR/RF/SVM metrics and populate the cards."
@@ -310,6 +314,7 @@ elif step == "Train & Evaluate":
     best_key: str = res.get("best_model") or ""
 
     bm = metrics.get(best_key, {})
+
     bm_name = {
         "logreg": "Logistic Regression",
         "rf": "Random Forest",
@@ -336,6 +341,7 @@ elif step == "Train & Evaluate":
 
     with top1:
         st.markdown("#### Model Comparison")
+
         c1, c2, c3 = st.columns(3)
 
         def card(title: str, m: dict[str, float]) -> None:
@@ -356,20 +362,24 @@ elif step == "Train & Evaluate":
 
         with c1:
             card("Logistic Regression", metrics.get("logreg", {}))
+
         with c2:
             card("Random Forest", metrics.get("rf", {}))
+
         with c3:
             card("SVM", metrics.get("svm", {}))
 
     st.markdown("---")
+
     with st.expander("View Diagnostics", expanded=False):
         diag = st.session_state.latest_diagnostics
+
         if not diag:
             st.info("No diagnostics yet. Retrain models to compute diagnostics.")
         else:
             st.subheader("Diagnostics")
             st.caption(
-                "Confusion matrices, ROC curves, and feature importance (where applicable)."
+                "Confusion matrices, ROC curves, and feature importance where applicable."
             )
             st.code(pretty_json(diag), language="json")
 
@@ -377,6 +387,7 @@ elif step == "Train & Evaluate":
         st.markdown("---")
         st.subheader("Post-ML Explanation (Optional)")
         st.caption("This is separate from architecture generation.")
+
         if st.button("Explain these results (LLM)", use_container_width=True):
             run_id = res.get("run_id")
             st.session_state.latest_llm_explain = call_api(
@@ -395,7 +406,9 @@ elif step == "Train & Evaluate":
 elif step == "Compare Models":
     st.header("Step 4 — Compare Models")
     st.caption("Richer comparison view will go here.")
+
     res = st.session_state.latest_train_eval
+
     if not res:
         st.info(
             "No training run yet. Go to **Train & Evaluate** and click Retrain Models."
@@ -405,25 +418,26 @@ elif step == "Compare Models":
 
 
 # -----------------------------
-# Architecture (Optional)
+# Architecture Step
 # -----------------------------
 elif step == "Architecture (Optional)":
     st.header("Architecture (Optional)")
     st.caption(
         "Generates architecture outputs from a project idea. "
-        "Mermaid generation uses the LLM agent (Groq), so GROQ_API_KEY must be set in the API environment."
+        "Mermaid generation uses the LLM agent, so GROQ_API_KEY must be set in the API environment."
     )
 
     st.subheader("Project idea")
+
     project_name = st.text_input("Name", "NASA Defect Prediction Classifier")
     project_domain = st.text_input("Domain", "ml", help="Required by backend schema.")
 
-    # ✅ FIX: backend expects scale in {"prototype","startup","enterprise"} (not small/medium/large)
     scale_label_to_value = {
         "Prototype (small)": "prototype",
         "Startup (medium)": "startup",
         "Enterprise (large)": "enterprise",
     }
+
     scale_labels = list(scale_label_to_value.keys())
     project_scale_label = st.selectbox("Scale", scale_labels, index=1)
     project_scale = scale_label_to_value[project_scale_label]
@@ -434,22 +448,26 @@ elif step == "Architecture (Optional)":
         "Compare Logistic Regression (baseline), Random Forest, and SVM; report Accuracy, F1, ROC AUC; include confusion matrix.",
         height=120,
     )
+
     project_notes = st.text_area("Notes (optional)", "", height=80)
 
     col1, col2, col3 = st.columns([0.34, 0.33, 0.33])
+
     with col1:
         btn_preview = st.button(
             "Architecture Preview (ML-based)", use_container_width=True
         )
+
     with col2:
         btn_agent = st.button("LLM Agent Plan (Groq)", use_container_width=True)
+
     with col3:
         btn_diagram = st.button("Generate Mermaid Diagram", use_container_width=True)
 
     idea_payload = {
         "name": (project_name or "").strip(),
         "domain": (project_domain or "").strip(),
-        "scale": (project_scale or "").strip(),  # ✅ now API-valid
+        "scale": (project_scale or "").strip(),
         "description": (project_desc or "").strip(),
         "notes": (project_notes or "").strip(),
     }
@@ -476,6 +494,7 @@ elif step == "Architecture (Optional)":
             "title": idea_payload["name"] or "Architecture Diagram",
             "idea": idea_payload,
         }
+
         st.session_state.latest_diagram = call_api(
             "POST", "/architect/diagram-from-idea", diagram_payload
         )
@@ -497,8 +516,10 @@ elif step == "Architecture (Optional)":
     with st.expander("Mermaid Diagram (Interactive)", expanded=True):
         diagram = st.session_state.latest_diagram or {}
         mermaid = diagram.get("mermaid") if isinstance(diagram, dict) else None
+
         if mermaid:
             render_mermaid_interactive(mermaid, height=560)
+
             with st.expander("Mermaid source", expanded=False):
                 st.code(mermaid, language="text")
         else:
@@ -528,6 +549,4 @@ elif step == "Export & Save Results":
         st.subheader("Latest Diagnostics (JSON)")
         st.code(pretty_json(diag), language="json")
 
-    st.info(
-        "Next: add an API endpoint to download a results bundle (JSON + plots) as a ZIP."
-    )
+    st.info("Next: add an API endpoint to download a results bundle as a ZIP.")

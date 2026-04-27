@@ -1,23 +1,25 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
 
-# System deps (keep curl; add build essentials only if you ever hit build issues)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+# System deps
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps FIRST for better Docker layer caching
-# IMPORTANT: this project uses requirements.txt, not pip install .
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -U pip && pip install --no-cache-dir -r /app/requirements.txt
+# Install dependencies first (better caching)
+COPY docker/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy the rest of the code
-COPY . /app
+# Copy ONLY backend code
+COPY app /app/app
+COPY artifacts /app/artifacts
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Azure sets PORT automatically; default to 8000 for local
-CMD ["bash", "-lc", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Railway-safe command
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

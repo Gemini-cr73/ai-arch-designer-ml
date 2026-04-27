@@ -1,5 +1,6 @@
 # Python / venv
 .venv/
+venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -12,12 +13,14 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Project folders not needed in image
-artifacts/
+# Project folders not needed in backend image
 data/
 docs/
 tests/
 scripts/
+ui/
+
+# 🚫 DO NOT ignore artifacts (required by Dockerfile)
 
 # Large / generated
 *.zip
@@ -27,5 +30,9 @@ scripts/
 *.jpeg
 *.gif
 
-# Node / misc (just in case)
+# Node / misc
 node_modules/
+
+# Environment / secrets
+.env
+*.env

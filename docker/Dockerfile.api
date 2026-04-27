@@ -2,17 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Optional: basic tools
+# Install minimal system deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies first (better caching)
 COPY docker/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -U pip \
+RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy only what the API needs
+# Copy app code
 COPY app /app/app
 COPY artifacts /app/artifacts
 
@@ -21,5 +21,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Bind to $PORT if provided (Azure), else default 8000
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# ✅ FIX: use python -m uvicorn (more stable in containers)
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

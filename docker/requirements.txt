@@ -41,7 +41,7 @@ matplotlib==3.10.8
 multitasking==0.0.12
 narwhals==2.14.0
 
-# ✅ IMPORTANT: pin numpy/scipy to sklearn-compatible versions
+# ML compatibility pins
 numpy==1.26.4
 scipy==1.11.4
 scikit-learn==1.5.2
@@ -53,9 +53,11 @@ peewee==3.18.3
 pillow==12.0.0
 platformdirs==4.5.1
 protobuf==6.33.2
-psycopg==3.3.2
-psycopg-binary==3.3.2
+
+# PostgreSQL drivers
+psycopg[binary]==3.3.2
 psycopg2-binary==2.9.11
+
 pyarrow==22.0.0
 pycparser==2.23
 pydantic==2.12.5
@@ -90,6 +92,5 @@ watchfiles==1.1.1
 websockets==15.0.1
 yfinance==0.2.65
 
-# ✅ NEW: Groq hosted LLM client
+# Groq hosted LLM client
 groq==0.31.0
-
